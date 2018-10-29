@@ -88,7 +88,6 @@ impl CPU{
             0xF9 => self.ld_sp_hl(),
             0xFA => self.ld_a_mem_nn(),
             0xFB => self.ei(),
-            0xFC =>
             _ => {
                 println!("({:#010b})", opcode);
                 unimplemented!();
@@ -416,8 +415,7 @@ impl CPU{
         println!("PUSH      {:?}({:?})", register, value);
         {
             let mut memory = self.memory.write().unwrap();
-            memory.write(sp-1, ((value>>8) & 0xFF) as u8 );
-            memory.write(sp-2, (value & 0xFF) as u8 );
+            memory.push_u16_stack(value, sp);
         }
         self.registers.set_sp(sp-2);
         self.registers.inc_pc(1);
@@ -428,14 +426,10 @@ impl CPU{
     pub fn pop_qq(&mut self, opcode: u8){
         let register = RegisterQQ::new((opcode >> 4) & 0b11);
         let sp = self.registers.sp();
-        let value;
-        {
+        let value = {
             let memory = self.memory.read().unwrap();
-            let val_lo = memory.read(sp);
-            let val_hi = memory.read(sp + 1);
-            value = ((val_hi as u16) << 8) + val_lo as u16;
-
-        }
+            memory.pop_u16_stack(sp)
+        };
         println!("POP   {:?}({:?})", register, value);
 
         self.registers.write_qq(register, value);
@@ -1034,11 +1028,9 @@ impl CPU{
         let address = self.read_memory_following_u16(pc);
         let mut sp = self.registers.sp();
         println!("CALL      {:#06x}", address);
-        println!("(((---{:#06x}{:04x}", (pc>>8) & 0xFF, (pc) & 0xFF);
         {
             let mut memory = self.memory.write().unwrap();
-            memory.write(sp-1, ((pc>>8) & 0xFF) as u8 );
-            memory.write(sp-2, ((pc) & 0xFF) as u8 );
+            memory.push_u16_stack(pc, sp);
         }
         sp = sp -2;
         pc = address;
@@ -1058,12 +1050,10 @@ impl CPU{
     /// 11 001 001
     pub fn ret(&mut self){
         let mut sp = self.registers.sp();
-        let pc;
-        {
+        let pc = {
             let memory = self.memory.read().unwrap();
-            pc = ((memory.read(sp+1) as u16) << 8) + memory.read(sp) as u16;
-            println!("{:#06x}", memory.following_u16(sp-1));
-        }
+            memory.pop_u16_stack(sp)
+        };
         println!("RET [{:#06x}]", pc);
         sp = sp + 2;
         self.registers.set_sp(sp);

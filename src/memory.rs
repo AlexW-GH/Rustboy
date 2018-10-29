@@ -1,4 +1,5 @@
 use rom::ROM;
+use registers::Registers;
 
 const ROM_BANK_0_OFFSET: u16 = 0x0000;
 const ROM_BANK_0_LAST: u16 = 0x3FFF ;
@@ -98,6 +99,25 @@ impl Memory {
             INTERRUPTS_ENABLE_REGISTER_OFFSET => (&self.interrupts_enable_register, INTERRUPTS_ENABLE_REGISTER_OFFSET),
             _ => unreachable!()
         }
+    }
+
+    pub fn push_u8_stack(&mut self, value: u8, sp: u16){
+        self.write(sp-1, value as u8 );
+    }
+
+    pub fn push_u16_stack(&mut self, value: u16, sp: u16){
+        self.write(sp-1, ((value>>8) & 0xFF) as u8 );
+        self.write(sp-2, (value & 0xFF) as u8 );
+    }
+
+    pub fn pop_u8_stack(&self, sp: u16) -> u8{
+        self.read(sp)
+    }
+
+    pub fn pop_u16_stack(&self, sp: u16) -> u16{
+        let val_lo = self.read(sp);
+        let val_hi = self.read(sp + 1);
+        ((val_hi as u16) << 8) + val_lo as u16
     }
 
     pub fn read(&self, address: u16) -> u8{
