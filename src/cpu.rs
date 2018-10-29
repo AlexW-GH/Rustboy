@@ -30,46 +30,66 @@ impl CPU{
         print!("{:#06X}: {:#04X} | ", pc, opcode);
         match opcode {
             0x00 => self.nop(),
-            0x01 | 0x11 | 0x21 | 0x31  => self.ld_dd_nn(opcode),
+            0x01 => self.ld_dd_nn(opcode),
             0x02 => self.ld_mem_bc_a(),
             0x05 => self.dec_r(opcode),
-            0x06 | 0x0E | 0x16 |
-            0x26 | 0x2E | 0x3E => self.ld_r_n(opcode),
+            0x06 => self.ld_r_n(opcode),
             0x08 => self.ld_mem_nn_sp(),
             0x0A => self.ld_a_mem_bc(),
+            0x0E => self.ld_r_n(opcode),
+            0x11 => self.ld_dd_nn(opcode),
             0x12 => self.ld_mem_de_a(),
+            0x16 => self.ld_r_n(opcode),
             0x17 => self.rla(),
             0x1A => self.ld_a_mem_de(),
+            0x1B => self.adc_a_r(opcode),
+            0x1E => self.ld_r_n(opcode),
             0x0C => self.inc_r(opcode),
             0x20 => self.jr_cc_e(opcode),
+            0x21 => self.ld_dd_nn(opcode),
             0x22 => self.ld_mem_hli_a(),
             0x23 => self.inc_ss(opcode),
+            0x26 => self.ld_r_n(opcode),
             0x2A => self.ld_a_mem_hli(),
+            0x2E => self.ld_r_n(opcode),
+            0x31 => self.ld_dd_nn(opcode),
             0x32 => self.ld_mem_hld_a(),
             0x36 => self.ld_mem_hl_n(),
+            0x3E => self.ld_r_n(opcode),
             0x3A => self.ld_a_mem_hld(),
-            0x42 | 0x45 | 0x4F | 0x78 => self.ld_r_r(opcode),
+            0x42 => self.ld_r_r(opcode),
+            0x45 => self.ld_r_r(opcode),
             0x46 => self.ld_r_mem_hl(opcode),
+            0x4F => self.ld_r_r(opcode),
             0x60 => self.ld_mem_hl_r(opcode),
             0x66 => self.ld_r_mem_hl(opcode),
             0x67 => self.ld_mem_hl_r(opcode),
             0x77 => self.ld_mem_hl_r(opcode),
-            0x80 ... 0x85 | 0x87 => self.add_a_r(opcode),
+            0x78 => self.ld_r_r(opcode),
+            0x80 ... 0x85 => self.add_a_r(opcode),
             0x86 => self.add_a_mem_hl(),
-            0x88 ... 0x8D | 0x8F => self.adc_a_r(),
+            0x87 => self.add_a_r(opcode),
+            0x88 ... 0x8D => self.adc_a_r(opcode),
             0x8E => self.adc_a_mem_hl(),
-            0x90 ... 0x95 | 0x97 => self.sub_a_r(),
+            0x8F => self.adc_a_r(opcode),
+            0x90 ... 0x95 => self.sub_a_r(opcode),
             0x96 => self.sub_a_mem_hl(),
-            0x98 ... 0x9D | 0x9F => self.sbc_a_r(),
+            0x97 => self.sub_a_r(opcode),
+            0x98 ... 0x9D => self.sbc_a_r(opcode),
             0x9E => self.sbc_a_mem_hl(),
-            0xA0 ... 0xA5 | 0xA7 => self.and_r(),
+            0x9F => self.sbc_a_r(opcode),
+            0xA0 ... 0xA5 => self.and_r(),
             0xA6 => self.and_mem_hl(),
-            0xA8 ... 0xAD | 0xAF => self.xor_r(opcode),
+            0xA7 => self.and_r(),
+            0xA8 ... 0xAD => self.xor_r(opcode),
             0xAE => self.xor_mem_hl(),
-            0xB0 ... 0xB5 | 0xB7 => self.or_r(),
+            0xAF => self.xor_r(opcode),
+            0xB0 ... 0xB5 => self.or_r(),
             0xB6 => self.or_mem_hl(),
-            0xB8 ... 0xBD | 0xBF => self.cp_r(),
+            0xB7 => self.or_r(),
+            0xB8 ... 0xBD => self.cp_r(),
             0xBE => self.cp_mem_hl(),
+            0xBF => self.cp_r(),
             0xC1 => self.pop_qq(opcode),
             0xC3 => self.jp_nn(),
             0xC5 => self.push_qq(opcode),
@@ -77,6 +97,9 @@ impl CPU{
             0xC9 => self.ret(),
             0xCB => self.extended_operations(pc),
             0xCD => self.call_nn(),
+            0xCE => self.adc_a_n(),
+            0xD6 => self.sub_a_n(),
+            0xDE => self.sbc_a_n(),
             0xE0 => self.ld_mem_n_a(),
             0xE2 => self.ld_mem_c_a(),
             0xE5 => self.push_qq(opcode),
@@ -134,7 +157,7 @@ impl CPU{
         self.registers.clone()
     }
 
-    // -------------------------------------------- //
+// -------------------------------------------- //
 // 8-Bit Transfer and Input/Output Instructions //
 // -------------------------------------------- //
 
@@ -478,6 +501,7 @@ impl CPU{
         let register = RegisterR::new(opcode & 0b111);
         let val_a = self.registers.a();
         let val_r = self.registers.read_r(register);
+        println!("ADD  {:?}({:?}), {:?}({:?})", RegisterR::A, val_a, register, val_r);
         let result = val_a.wrapping_add(val_r);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add(val_a, val_r, Calculate, Clear, Calculate, Calculate);
@@ -492,6 +516,7 @@ impl CPU{
         let pc = self.registers.pc();
         let val_a = self.registers.a();
         let val_n = self.read_memory_following_u8(pc);
+        println!("ADD  {:?}({:?}), ({:?})", RegisterR::A, val_a, val_n);
         let result = val_a.wrapping_add(val_n);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add(val_a, val_n, Calculate, Clear, Calculate, Calculate);
@@ -505,6 +530,7 @@ impl CPU{
         let hl = self.registers.hl();
         let val_a = self.registers.a();
         let val_hl = self.read_memory(hl);
+        println!("ADD  {:?}({:?}), {:?}{:#06x}({:?})", RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
         let result = val_a.wrapping_add(val_hl);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add(val_a, val_hl, Calculate, Clear, Calculate, Calculate);
@@ -514,59 +540,137 @@ impl CPU{
 
     /// ADC     A, r
     /// 10 001 rrr
-    pub fn adc_a_r(&mut self){
-        unimplemented!();
+    pub fn adc_a_r(&mut self, opcode: u8){
+        let register = RegisterR::new(opcode & 0b111);
+        let val_a = self.registers.a();
+        let val_r = self.registers.read_r(register);
+        let cy_flag = self.registers.get_flag_cy();
+        println!("ADC  {:?}({:?}), {:?}({:?})", RegisterR::A, val_a, register, val_r);
+        let result = val_a.wrapping_add(val_r).wrapping_add(cy_flag);
+        use registers::FlagCalculationStatus::*;
+        self.registers.set_flags_add_with_carry(val_a, val_r, Calculate, Clear, Calculate, Calculate);
+        self.registers.set_a(result);
+        self.registers.inc_pc(1);
     }
 
     /// ADC     A, n
     /// 11 001 110
     /// nnnnnnnn
     pub fn adc_a_n(&mut self){
-        unimplemented!();
+        let pc = self.registers.pc();
+        let val_a = self.registers.a();
+        let val_n = self.read_memory_following_u8(pc);
+        let cy_flag = self.registers.get_flag_cy();
+        println!("ADC  {:?}({:?}), ({:?})", RegisterR::A, val_a, val_n);
+        let result = val_a.wrapping_add(val_n).wrapping_add(cy_flag);
+        use registers::FlagCalculationStatus::*;
+        self.registers.set_flags_add_with_carry(val_a, val_n, Calculate, Clear, Calculate, Calculate);
+        self.registers.set_a(result);
+        self.registers.inc_pc(2);
     }
 
     /// ADC     A, (HL)
     /// 10 001 110
     pub fn adc_a_mem_hl(&mut self){
-        unimplemented!();
+        let hl = self.registers.hl();
+        let val_a = self.registers.a();
+        let val_hl = self.read_memory(hl);
+        let cy_flag = self.registers.get_flag_cy();
+        println!("ADC  {:?}({:?}), {:?}{:#06x}({:?})", RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
+        let result = val_a.wrapping_add(val_hl).wrapping_add(cy_flag);
+        use registers::FlagCalculationStatus::*;
+        self.registers.set_flags_add_with_carry(val_a, val_hl, Calculate, Clear, Calculate, Calculate);
+        self.registers.set_a(result);
+        self.registers.inc_pc(1);
     }
 
     /// SUB     A, r
     /// 10 010 rrr
-    pub fn sub_a_r(&mut self){
-        unimplemented!();
+    pub fn sub_a_r(&mut self, opcode: u8){
+        let register = RegisterR::new(opcode & 0b111);
+        let val_a = self.registers.a();
+        let val_r = self.registers.read_r(register);
+        println!("SUB  {:?}({:?}), {:?}({:?})", RegisterR::A, val_a, register, val_r);
+        let result = val_a.wrapping_sub(val_r);
+        use registers::FlagCalculationStatus::*;
+        self.registers.set_flags_sub(val_a, val_r, Calculate, Set, Calculate, Calculate);
+        self.registers.set_a(result);
+        self.registers.inc_pc(1);
     }
 
     /// SUB     A, n
     /// 11 010 110
     /// nnnnnnnn
     pub fn sub_a_n(&mut self){
-        unimplemented!();
+        let pc = self.registers.pc();
+        let val_a = self.registers.a();
+        let val_n = self.read_memory_following_u8(pc);
+        println!("SUB  {:?}({:?}), ({:?})", RegisterR::A, val_a, val_n);
+        let result = val_a.wrapping_sub(val_n);
+        use registers::FlagCalculationStatus::*;
+        self.registers.set_flags_sub(val_a, val_n, Calculate, Set, Calculate, Calculate);
+        self.registers.set_a(result);
+        self.registers.inc_pc(2);
     }
 
     /// SUB     A, (HL)
     /// 10 010 110
     pub fn sub_a_mem_hl(&mut self){
-        unimplemented!();
+        let hl = self.registers.hl();
+        let val_a = self.registers.a();
+        let val_hl = self.read_memory(hl);
+        println!("SUB  {:?}({:?}), {:?}{:#06x}({:?})", RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
+        let result = val_a.wrapping_sub(val_hl);
+        use registers::FlagCalculationStatus::*;
+        self.registers.set_flags_sub(val_a, val_hl, Calculate, Set, Calculate, Calculate);
+        self.registers.set_a(result);
+        self.registers.inc_pc(1);
     }
 
     /// SBC     A, r
     /// 10 010 rrr
-    pub fn sbc_a_r(&mut self){
-        unimplemented!();
+    pub fn sbc_a_r(&mut self, opcode: u8){
+        let register = RegisterR::new(opcode & 0b111);
+        let val_a = self.registers.a();
+        let val_r = self.registers.read_r(register);
+        let cy_flag = self.registers.get_flag_cy();
+        println!("SBC  {:?}({:?}), {:?}({:?})", RegisterR::A, val_a, register, val_r);
+        let result = val_a.wrapping_sub(val_r).wrapping_sub(cy_flag);
+        use registers::FlagCalculationStatus::*;
+        self.registers.set_flags_sub_with_carry(val_a, val_r, Calculate, Set, Calculate, Calculate);
+        self.registers.set_a(result);
+        self.registers.inc_pc(1);
     }
 
     /// SBC     A, n
     /// 11 010 110
     /// nnnnnnnn
     pub fn sbc_a_n(&mut self){
-        unimplemented!();
+        let pc = self.registers.pc();
+        let val_a = self.registers.a();
+        let val_n = self.read_memory_following_u8(pc);
+        let cy_flag = self.registers.get_flag_cy();
+        println!("SBC  {:?}({:?}), ({:?})", RegisterR::A, val_a, val_n);
+        let result = val_a.wrapping_sub(val_n).wrapping_sub(cy_flag);
+        use registers::FlagCalculationStatus::*;
+        self.registers.set_flags_sub_with_carry(val_a, val_n, Calculate, Set, Calculate, Calculate);
+        self.registers.set_a(result);
+        self.registers.inc_pc(2);
     }
 
     /// SBC     A, (HL)
     /// 10 010 110
     pub fn sbc_a_mem_hl(&mut self){
-        unimplemented!();
+        let hl = self.registers.hl();
+        let val_a = self.registers.a();
+        let val_hl = self.read_memory(hl);
+        let cy_flag = self.registers.get_flag_cy();
+        println!("SBC  {:?}({:?}), {:?}{:#06x}({:?})", RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
+        let result = val_a.wrapping_sub(val_hl).wrapping_sub(cy_flag);
+        use registers::FlagCalculationStatus::*;
+        self.registers.set_flags_sub_with_carry(val_a, val_hl, Calculate, Set, Calculate, Calculate);
+        self.registers.set_a(result);
+        self.registers.inc_pc(1);
     }
 
     /// AND     r
@@ -1747,7 +1851,7 @@ mod tests {
             0b00_111_110,
             0x3C,           // LD A, 0x3C
             0b00_100_001,
-            0x08,
+            0x00,
             0x80,          // LD HL, 0x8000
             0b_00_110_110,
             0x12,          // LD (HL), 0x12
@@ -1766,4 +1870,231 @@ mod tests {
         assert_eq!(registers.pc(), 8);
     }
 
+    #[test]
+    fn adc_a_e() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x3A,           // LD A, 0x3A
+            0b11_000_110,
+            0xC6,           // ADD A, 0xC6
+            0b00_111_110,
+            0xE1,           // LD A, 0xE1
+            0b00_011_110,
+            0x0F,           // LD E, 0x0F
+            0b10_001_011    // ADD A, E
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..5{
+            cpu.step();
+        }
+        let registers = cpu.copy_registers();
+        assert_eq!(registers.a(), 0xF1);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 9);
+    }
+
+    #[test]
+    fn adc_a_0x3b() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x3A,           // LD A, 0x3A
+            0b11_000_110,
+            0xC6,           // ADD A, 0xC6
+            0b00_111_110,
+            0xE1,           // LD A, 0xE1
+            0b11_001_110,
+            0x3B            // ADD A, 0x3B
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..4{
+            cpu.step();
+        }
+        let registers = cpu.copy_registers();
+        assert_eq!(registers.a(), 0x1D);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 1);
+        assert_eq!(registers.pc(), 8);
+    }
+
+    #[test]
+    fn adc_a_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x3A,           // LD A, 0x3A
+            0b11_000_110,
+            0xC6,           // ADD A, 0xC6
+            0b00_111_110,
+            0xE1,           // LD A, 0xE1
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b_00_110_110,
+            0x1E,          // LD (HL), 0x1E
+            0b10_001_110   // ADD A, (HL)
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..6{
+            cpu.step();
+        }
+        let registers = cpu.copy_registers();
+        assert_eq!(registers.a(), 0x0);
+        assert_eq!(registers.get_flag_z(), 1);
+        assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 1);
+        assert_eq!(registers.pc(), 12);
+    }
+
+    #[test]
+    fn sub_a_h() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x3E,           // LD A, 0x3E
+            0b00_101_110,
+            0x3E,           // LD H, 0x3E
+            0b10_010_101    // ADD A, H
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = cpu.copy_registers();
+        assert_eq!(registers.a(), 0x0);
+        assert_eq!(registers.get_flag_z(), 1);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 5);
+    }
+
+    #[test]
+    fn sub_a_0x0f() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x3E,           // LD A, 0x3E
+            0b11_010_110,
+            0x0F            // ADD A, 0x0F
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = cpu.copy_registers();
+        assert_eq!(registers.a(), 0x2F);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 4);
+    }
+
+    #[test]
+    fn sub_a_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x3E,           // LD A, 0x3E
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b_00_110_110,
+            0x40,          // LD (HL), 0x40
+            0b10_010_110   // SUB A, (HL)
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..4{
+            cpu.step();
+        }
+        let registers = cpu.copy_registers();
+        assert_eq!(registers.a(), 0xFE);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.get_flag_cy(), 1);
+        assert_eq!(registers.pc(), 8);
+    }
+
+    #[test]
+    fn sbc_a_h() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x3A,           // LD A, 0x3A
+            0b11_000_110,
+            0xC6,           // ADD A, 0xC6
+            0b00_111_110,
+            0x3B,           // LD A, 0x3B
+            0b00_101_110,
+            0x2A,           // LD H, 0x2A
+            0b10_011_101    // SBC A, E
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..5{
+            cpu.step();
+        }
+        let registers = cpu.copy_registers();
+        assert_eq!(registers.a(), 0x10);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 9);
+    }
+
+    #[test]
+    fn sbc_a_0x3a() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x3A,           // LD A, 0x3A
+            0b11_000_110,
+            0xC6,           // ADD A, 0xC6
+            0b00_111_110,
+            0x3B,           // LD A, 0x3B
+            0b11_011_110,
+            0x3A            // SBC A, 0x3A
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..4{
+            cpu.step();
+        }
+        let registers = cpu.copy_registers();
+        assert_eq!(registers.a(), 0x00);
+        assert_eq!(registers.get_flag_z(), 1);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 8);
+    }
+
+    #[test]
+    fn sbc_a_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x3A,           // LD A, 0x3A
+            0b11_000_110,
+            0xC6,           // ADD A, 0xC6
+            0b00_111_110,
+            0x3B,           // LD A, 0x3B
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b_00_110_110,
+            0x4F,          // LD (HL), 0x4F
+            0b10_011_110   // SBC A, (HL)
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..6{
+            cpu.step();
+        }
+        let registers = cpu.copy_registers();
+        assert_eq!(registers.a(), 0xEB);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.get_flag_cy(), 1);
+        assert_eq!(registers.pc(), 12);
+    }
 }
