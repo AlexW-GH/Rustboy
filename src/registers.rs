@@ -406,14 +406,25 @@ impl Registers {
         self.set_f(flags);
     }
 
-    pub fn set_flags_add_u16_u8(&mut self, operand1: u16, operand2: u8,
+    pub fn set_flags_add_u16(&mut self, operand1: u16, operand2: u16,
                          z: FlagCalculationStatus, n: FlagCalculationStatus,
                          h: FlagCalculationStatus, cy: FlagCalculationStatus){
         let mut flags = self.f();
-        flags = Registers::calculate_flag_z_u16_u8(FlagCalculationOperation::Add, operand1, operand2, z, flags);
+        flags = Registers::calculate_flag_z_u16(FlagCalculationOperation::Add, operand1, operand2, z, flags);
         flags = Registers::calculate_flag_n(n, flags);
-        flags = Registers::calculate_flag_h_u16_u8(FlagCalculationOperation::Add, operand1, operand2, h, flags);
-        flags = Registers::calculate_flag_cy_u16_u8(FlagCalculationOperation::Add, operand1, operand2, cy, flags);
+        flags = Registers::calculate_flag_h_u16(FlagCalculationOperation::Add, operand1, operand2, h, flags);
+        flags = Registers::calculate_flag_cy_u16(FlagCalculationOperation::Add, operand1, operand2, cy, flags);
+        self.set_f(flags);
+    }
+
+    pub fn set_flags_sub_u16(&mut self, operand1: u16, operand2: u16,
+                             z: FlagCalculationStatus, n: FlagCalculationStatus,
+                             h: FlagCalculationStatus, cy: FlagCalculationStatus){
+        let mut flags = self.f();
+        flags = Registers::calculate_flag_z_u16(FlagCalculationOperation::Sub, operand1, operand2, z, flags);
+        flags = Registers::calculate_flag_n(n, flags);
+        flags = Registers::calculate_flag_h_u16(FlagCalculationOperation::Sub, operand1, operand2, h, flags);
+        flags = Registers::calculate_flag_cy_u16(FlagCalculationOperation::Sub, operand1, operand2, cy, flags);
         self.set_f(flags);
     }
 
@@ -504,15 +515,15 @@ impl Registers {
         }
     }
 
-    fn calculate_flag_z_u16_u8(operation: FlagCalculationOperation, operand1: u16, operand2: u8, z: FlagCalculationStatus, flags: u8) -> u8 {
+    fn calculate_flag_z_u16(operation: FlagCalculationOperation, operand1: u16, operand2: u16, z: FlagCalculationStatus, flags: u8) -> u8 {
         match z {
             FlagCalculationStatus::Set => bit_op::set_bit(flags, 7),
             FlagCalculationStatus::Clear => bit_op::clear_bit(flags, 7),
             FlagCalculationStatus::Ignore => flags,
             FlagCalculationStatus::Calculate => {
                 let result = match operation{
-                    FlagCalculationOperation::Add => operand1.overflowing_add(operand2 as u16),
-                    FlagCalculationOperation::Sub => operand1.overflowing_sub(operand2 as u16),
+                    FlagCalculationOperation::Add => operand1.overflowing_add(operand2),
+                    FlagCalculationOperation::Sub => operand1.overflowing_sub(operand2),
                 };
                 if result.0 == 0 {
                     bit_op::set_bit(flags, 7)
@@ -523,7 +534,7 @@ impl Registers {
         }
     }
 
-    fn calculate_flag_h_u16_u8(operation: FlagCalculationOperation, operand1: u16, operand2: u8, h: FlagCalculationStatus, flags: u8) -> u8 {
+    fn calculate_flag_h_u16(operation: FlagCalculationOperation, operand1: u16, operand2: u16, h: FlagCalculationStatus, flags: u8) -> u8 {
         match h {
             FlagCalculationStatus::Set => bit_op::set_bit(flags, 5),
             FlagCalculationStatus::Clear => bit_op::clear_bit(flags, 5),
@@ -531,16 +542,18 @@ impl Registers {
             FlagCalculationStatus::Calculate => {
                 match operation {
                     FlagCalculationOperation::Add => {
-                        let result = (((operand1 & 0xFF) + (operand2 as u16)) & 0x100);
-                        if result == 0x100 {
+                        let mut result = operand1 & 0xFFF;
+                        result += operand2 & 0xFFF;
+                        println!("result: {:#06x}", result);
+                        if result >= 0x1000 {
                             bit_op::set_bit(flags, 5)
                         } else {
                             bit_op::clear_bit(flags, 5)
                         }
                     },
                     FlagCalculationOperation::Sub => {
-                        let mut result: i32 = operand1 as i32 & 0xFF;
-                        result -= operand2 as i32;
+                        let mut result: i32 = operand1 as i32 & 0xFFF;
+                        result -= operand2 as i32 & 0xFFF;
 
                         if result < 0 {
                             bit_op::set_bit(flags, 5)
@@ -554,7 +567,7 @@ impl Registers {
         }
     }
 
-    fn calculate_flag_cy_u16_u8(operation: FlagCalculationOperation, operand1: u16, operand2: u8, h: FlagCalculationStatus, flags: u8) -> u8 {
+    fn calculate_flag_cy_u16(operation: FlagCalculationOperation, operand1: u16, operand2: u16, h: FlagCalculationStatus, flags: u8) -> u8 {
         match h {
             FlagCalculationStatus::Set => bit_op::set_bit(flags, 4),
             FlagCalculationStatus::Clear => bit_op::clear_bit(flags, 4),
@@ -562,7 +575,7 @@ impl Registers {
             FlagCalculationStatus::Calculate => {
                 match operation{
                     FlagCalculationOperation::Add => {
-                        let result = operand1.checked_add(operand2 as u16);
+                        let result = operand1.checked_add(operand2);
                         if result == None {
                             bit_op::set_bit(flags, 4)
                         } else {
@@ -570,7 +583,7 @@ impl Registers {
                         }
                     },
                     FlagCalculationOperation::Sub => {
-                        if operand1 < operand2 as u16 {
+                        if operand1 < operand2 {
                             bit_op::set_bit(flags, 4)
                         } else {
                             bit_op::clear_bit(flags, 4)

@@ -50,7 +50,7 @@ impl Memory {
             vram: [0; 0x2000],
             ram: [0; 0x2000],
             wram_0: [0; 0x1000],
-            wram_1n: wram_1n,
+            wram_1n,
             echo_ram: [0; 0x1E00],
             sprite_attrib_table: [0; 0x00A0],
             io_registers: [0; 0x0080],
