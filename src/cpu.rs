@@ -41,6 +41,7 @@ impl CPU{
             0x12 => self.ld_mem_de_a(),
             0x16 => self.ld_r_n(opcode),
             0x17 => self.rla(),
+            0x18 => self.jr_e(),
             0x1A => self.ld_a_mem_de(),
             0x1B => self.adc_a_r(opcode),
             0x1E => self.ld_r_n(opcode),
@@ -55,6 +56,7 @@ impl CPU{
             0x31 => self.ld_dd_nn(opcode),
             0x32 => self.ld_mem_hld_a(),
             0x36 => self.ld_mem_hl_n(),
+            0x3C => self.inc_r(opcode),
             0x3E => self.ld_r_n(opcode),
             0x3A => self.ld_a_mem_hld(),
             0x42 => self.ld_r_r(opcode),
@@ -66,6 +68,8 @@ impl CPU{
             0x67 => self.ld_mem_hl_r(opcode),
             0x77 => self.ld_mem_hl_r(opcode),
             0x78 => self.ld_r_r(opcode),
+            0x7C => self.ld_r_r(opcode),
+            0x7D => self.ld_r_r(opcode),
             0x80 ... 0x85 => self.add_a_r(opcode),
             0x86 => self.add_a_mem_hl(),
             0x87 => self.add_a_r(opcode),
@@ -105,9 +109,12 @@ impl CPU{
             0xE5 => self.push_qq(opcode),
             0xE6 => self.and_n(),
             0xEA => self.ld_mem_nn_a(),
+            0xEE => self.xor_n(),
             0xF0 => self.ld_a_mem_n(),
             0xF2 => self.ld_a_mem_c(),
+            0xF3 => self.di(),
             0xF5 => self.push_qq(opcode),
+            0xF6 => self.or_n(),
             0xF8 => self.ldhl_sp_e(),
             0xF9 => self.ld_sp_hl(),
             0xFA => self.ld_a_mem_nn(),
@@ -152,10 +159,6 @@ impl CPU{
                 unimplemented!();
             }
         }
-    }
-
-    pub fn copy_registers(&self) -> Registers{
-        self.registers.clone()
     }
 
 // -------------------------------------------- //
@@ -682,7 +685,6 @@ impl CPU{
         let reg_a_value = self.registers.a();
         println!("AND   {:?}({:?}), {:?}({:?})", RegisterR::A, reg_a_value, register, value);
         let result = reg_a_value & value;
-        println!("Result: {:?}", result);
         self.registers.set_flags(if result == 0 {1} else {0}, 0,1, 0);
         self.registers.set_a(result);
         self.registers.inc_pc(1);
@@ -719,20 +721,42 @@ impl CPU{
     /// OR      r
     /// 10 110 rrr
     pub fn or_r(&mut self, opcode: u8){
-        unimplemented!();
+        let register = RegisterR::new(opcode & 0b111);
+        let value = self.registers.read_r(register);
+        let reg_a_value = self.registers.a();
+        println!("OR    {:?}({:?}), {:?}({:?})", RegisterR::A, reg_a_value, register, value);
+        let result = reg_a_value | value;
+        self.registers.set_flags(if result == 0 {1} else {0}, 0,0, 0);
+        self.registers.set_a(result);
+        self.registers.inc_pc(1);
     }
 
     /// OR      n
     /// 11 110 110
     /// nnnnnnnn
     pub fn or_n(&mut self){
-        unimplemented!();
+        let pc = self.registers.pc();
+        let value = self.read_memory_following_u8(pc);
+        let reg_a_value = self.registers.a();
+        println!("OR    {:?}({:?}), {:?}", RegisterR::A, reg_a_value, value);
+        let result = reg_a_value | value;
+        self.registers.set_flags(if result == 0 {1} else {0}, 0,0, 0);
+        self.registers.set_a(result);
+        self.registers.inc_pc(2);
     }
 
     /// OR      (HL)
     /// 10 110 110
     pub fn or_mem_hl(&mut self){
-        unimplemented!();
+        let address = self.registers.hl();
+        let value = self.read_memory(address);
+        let reg_a_value = self.registers.a();
+        println!("OR    {:?}({:?}), {:?}[{:?}]({:?})",
+                 RegisterR::A, reg_a_value, RegisterDD::HL, address, value);
+        let result = reg_a_value | value;
+        self.registers.set_flags(if result == 0 {1} else {0}, 0,0, 0);
+        self.registers.set_a(result);
+        self.registers.inc_pc(1);
     }
 
     /// XOR     r
@@ -742,7 +766,9 @@ impl CPU{
         let value = self.registers.read_r(register);
         let reg_a_value = self.registers.a();
         println!("XOR   {:?}({:?}), A({:?})", register, value, reg_a_value);
-        self.registers.set_a(reg_a_value ^ value);
+        let result = reg_a_value ^ value;
+        self.registers.set_flags(if result == 0 {1} else {0}, 0,0, 0);
+        self.registers.set_a(result);
         self.registers.inc_pc(1);
     }
 
@@ -750,13 +776,28 @@ impl CPU{
     /// 11 101 110
     /// nnnnnnnn
     pub fn xor_n(&mut self){
-        unimplemented!();
+        let pc = self.registers.pc();
+        let value = self.read_memory_following_u8(pc);
+        let reg_a_value = self.registers.a();
+        println!("XOR   {:?}({:?}), {:?}", RegisterR::A, reg_a_value, value);
+        let result = reg_a_value ^ value;
+        self.registers.set_flags(if result == 0 {1} else {0}, 0,0, 0);
+        self.registers.set_a(result);
+        self.registers.inc_pc(2);
     }
 
     /// XOR     (HL)
     /// 10 101 110
     pub fn xor_mem_hl(&mut self){
-        unimplemented!();
+        let address = self.registers.hl();
+        let value = self.read_memory(address);
+        let reg_a_value = self.registers.a();
+        println!("XOR   {:?}({:?}), {:?}[{:?}]({:?})",
+                 RegisterR::A, reg_a_value, RegisterDD::HL, address, value);
+        let result = reg_a_value ^ value;
+        self.registers.set_flags(if result == 0 {1} else {0}, 0,0, 0);
+        self.registers.set_a(result);
+        self.registers.inc_pc(1);
     }
 
     /// CP      r
@@ -1251,6 +1292,14 @@ impl CPU{
         self.registers.inc_pc(1);
     }
 
+    /// DI
+    /// 11 110 011
+    pub fn di(&mut self){
+        println!("DI");
+        self.interrupt.write().unwrap().master_enable = false;
+        self.registers.inc_pc(1);
+    }
+
     // ---------------- //
     // Helper Functions //
     // ---------------- //
@@ -1287,7 +1336,8 @@ mod tests {
     fn create_cpu(rom: ROM) -> (CPU, Arc<RwLock<Memory>>){
         let memory = Arc::new(RwLock::new(Memory::new(rom)));
         let interrupt = Arc::new(RwLock::new(InterruptController::new()));
-        let cpu = CPU::new(interrupt, memory.clone());
+        let mut cpu = CPU::new(interrupt, memory.clone());
+        cpu.registers.set_pc(0);
         (cpu, memory)
     }
 
@@ -1304,7 +1354,7 @@ mod tests {
         for i in 0..3{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0b00000010);
         assert_eq!(registers.pc(), 5);
     }
@@ -1322,7 +1372,7 @@ mod tests {
         for i in 0..3{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.b(), 0b00000010);
         assert_eq!(registers.pc(), 5);
     }
@@ -1337,7 +1387,7 @@ mod tests {
         for i in 0..1{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.b(), 0b00011000);
         assert_eq!(registers.pc(), 2);
     }
@@ -1357,7 +1407,7 @@ mod tests {
         for i in 0..4{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.h(), 0x5C);
         assert_eq!(registers.pc(), 7);
     }
@@ -1376,7 +1426,7 @@ mod tests {
         for i in 0..3{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8AC5), 0x3C);
         assert_eq!(registers.pc(), 6);
     }
@@ -1394,7 +1444,7 @@ mod tests {
         for i in 0..2{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8AC5), 13);
         assert_eq!(registers.pc(), 5);
     }
@@ -1417,7 +1467,7 @@ mod tests {
         for i in 0..4{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x2F);
         assert_eq!(registers.pc(), 9);
     }
@@ -1440,7 +1490,7 @@ mod tests {
         for i in 0..4{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x5F);
         assert_eq!(registers.pc(), 9);
     }
@@ -1462,7 +1512,7 @@ mod tests {
         for i in 0..4{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x21);
         assert_eq!(registers.pc(), 8);
     }
@@ -1480,7 +1530,7 @@ mod tests {
         for i in 0..3{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0xFF9F), 0x3C);
         assert_eq!(registers.pc(), 5);
     }
@@ -1502,7 +1552,7 @@ mod tests {
         for i in 0..5{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x3C);
         assert_eq!(registers.pc(), 9);
     }
@@ -1519,7 +1569,7 @@ mod tests {
         for i in 0..2{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0xFF34), 0x3C);
         assert_eq!(registers.pc(), 4);
     }
@@ -1540,7 +1590,7 @@ mod tests {
         for i in 0..3{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x2F);
         assert_eq!(registers.pc(), 8);
     }
@@ -1558,7 +1608,7 @@ mod tests {
         for i in 0..2{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0xFF44), 0x3A);
         assert_eq!(registers.pc(), 5);
     }
@@ -1577,7 +1627,7 @@ mod tests {
         for i in 0..3{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x77);
         assert_eq!(registers.hl(), 0x8009);
         assert_eq!(registers.pc(), 6);
@@ -1597,7 +1647,7 @@ mod tests {
         for i in 0..3{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x77);
         assert_eq!(registers.hl(), 0x8007);
         assert_eq!(registers.pc(), 6);
@@ -1617,7 +1667,7 @@ mod tests {
         for i in 0..3{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8000), 0xAB);
         assert_eq!(registers.pc(), 6);
     }
@@ -1636,7 +1686,7 @@ mod tests {
         for i in 0..3{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8000), 0xAD);
         assert_eq!(registers.pc(), 6);
     }
@@ -1656,7 +1706,7 @@ mod tests {
         for i in 0..3{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.hl(), 0x8009);
         assert_eq!(memory.read().unwrap().read(0x8008), 0x96);
         assert_eq!(registers.pc(), 6);
@@ -1677,7 +1727,7 @@ mod tests {
         for i in 0..3{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.hl(), 0x8007);
         assert_eq!(memory.read().unwrap().read(0x8008), 0x97);
         assert_eq!(registers.pc(), 6);
@@ -1695,7 +1745,7 @@ mod tests {
         for i in 0..1{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.hl(), 0x3A5B);
         assert_eq!(registers.pc(), 3);
     }
@@ -1712,7 +1762,7 @@ mod tests {
         for i in 0..2{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.sp(), 0x3A5B);
         assert_eq!(registers.pc(), 4);
     }
@@ -1726,12 +1776,12 @@ mod tests {
             0b11_100_101, // PUSH HL
         ]);
         let (mut cpu, memory) = create_cpu(rom);
-        let old_sp = cpu.copy_registers().sp();
+        let old_sp = {cpu.registers.sp()};
 
         for i in 0..2{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         let sp = registers.sp();
         assert_eq!(old_sp, 0xFFFE);
         assert_eq!(memory.read().unwrap().read(old_sp-1), 0x3A);
@@ -1754,11 +1804,11 @@ mod tests {
         for i in 0..2{
             cpu.step();
         }
-        let old_sp = cpu.copy_registers().sp();
+        let old_sp = {&cpu.registers.sp()};
         for i in 0..1{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         let sp = registers.sp();
         assert_eq!(sp, old_sp+2);
         assert_eq!(registers.b(), 0x3A);
@@ -1779,7 +1829,7 @@ mod tests {
         for i in 0..2{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.hl(), 0xFFF0);
         assert_eq!(registers.pc(), 5);
     }
@@ -1797,7 +1847,7 @@ mod tests {
         for i in 0..2{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.get_flag_z(), 0);
         assert_eq!(registers.get_flag_h(), 0);
         assert_eq!(registers.get_flag_n(), 0);
@@ -1820,7 +1870,7 @@ mod tests {
         for i in 0..2{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8000), 0xf8);
         assert_eq!(memory.read().unwrap().read(0x8001), 0xff);
         assert_eq!(registers.pc(), 6);
@@ -1839,7 +1889,7 @@ mod tests {
         for i in 0..3{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x0);
         assert_eq!(registers.get_flag_z(), 1);
         assert_eq!(registers.get_flag_h(), 1);
@@ -1860,7 +1910,7 @@ mod tests {
         for i in 0..2{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x3B);
         assert_eq!(registers.get_flag_z(), 0);
         assert_eq!(registers.get_flag_h(), 1);
@@ -1885,7 +1935,7 @@ mod tests {
         for i in 0..4{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x4E);
         assert_eq!(registers.get_flag_z(), 0);
         assert_eq!(registers.get_flag_h(), 0);
@@ -1911,7 +1961,7 @@ mod tests {
         for i in 0..5{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0xF1);
         assert_eq!(registers.get_flag_z(), 0);
         assert_eq!(registers.get_flag_h(), 1);
@@ -1936,7 +1986,7 @@ mod tests {
         for i in 0..4{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x1D);
         assert_eq!(registers.get_flag_z(), 0);
         assert_eq!(registers.get_flag_h(), 0);
@@ -1965,7 +2015,7 @@ mod tests {
         for i in 0..6{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x0);
         assert_eq!(registers.get_flag_z(), 1);
         assert_eq!(registers.get_flag_h(), 1);
@@ -1987,7 +2037,7 @@ mod tests {
         for i in 0..3{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x0);
         assert_eq!(registers.get_flag_z(), 1);
         assert_eq!(registers.get_flag_h(), 0);
@@ -2008,7 +2058,7 @@ mod tests {
         for i in 0..2{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x2F);
         assert_eq!(registers.get_flag_z(), 0);
         assert_eq!(registers.get_flag_h(), 1);
@@ -2033,7 +2083,7 @@ mod tests {
         for i in 0..4{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0xFE);
         assert_eq!(registers.get_flag_z(), 0);
         assert_eq!(registers.get_flag_h(), 0);
@@ -2059,7 +2109,7 @@ mod tests {
         for i in 0..5{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x10);
         assert_eq!(registers.get_flag_z(), 0);
         assert_eq!(registers.get_flag_h(), 0);
@@ -2084,7 +2134,7 @@ mod tests {
         for i in 0..4{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x00);
         assert_eq!(registers.get_flag_z(), 1);
         assert_eq!(registers.get_flag_h(), 0);
@@ -2113,7 +2163,7 @@ mod tests {
         for i in 0..6{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0xEB);
         assert_eq!(registers.get_flag_z(), 0);
         assert_eq!(registers.get_flag_h(), 1);
@@ -2135,7 +2185,7 @@ mod tests {
         for i in 0..3{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x1A);
         assert_eq!(registers.get_flag_z(), 0);
         assert_eq!(registers.get_flag_h(), 1);
@@ -2156,7 +2206,7 @@ mod tests {
         for i in 0..2{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x18);
         assert_eq!(registers.get_flag_z(), 0);
         assert_eq!(registers.get_flag_h(), 1);
@@ -2175,16 +2225,148 @@ mod tests {
             0x80,          // LD HL, 0x8000
             0b00_110_110,
             0x00,          // LD (HL), 0x00
-            0b10_100_110   // SUB A, (HL)
+            0b10_100_110   // AND A, (HL)
         ]);
         let (mut cpu, memory) = create_cpu(rom);
         for i in 0..4{
             cpu.step();
         }
-        let registers = cpu.copy_registers();
+        let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x00);
         assert_eq!(registers.get_flag_z(), 1);
         assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 8);
+    }
+
+    #[test]
+    fn or_a_l() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x5A,           // LD A, 0x5A
+            0b10_110_111    // OR A, A
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0x5A);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 3);
+    }
+
+    #[test]
+    fn or_a_0x03() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x5A,           // LD A, 0x5A
+            0b11_110_110,
+            0x03            // OR A, 0x03
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0x5B);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 4);
+    }
+
+    #[test]
+    fn or_a_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x5A,           // LD A, 0x5A
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b00_110_110,
+            0x00,          // LD (HL), 0x00
+            0b10_110_110   // OR A, (HL)
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..4{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0x5A);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 8);
+    }
+
+    #[test]
+    fn xor_a_l() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0xFF,           // LD A, 0xFF
+            0b10_101_111    // XOR A, A
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0x00);
+        assert_eq!(registers.get_flag_z(), 1);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 3);
+    }
+
+    #[test]
+    fn xor_a_0x0F() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0xFF,           // LD A, 0xFF
+            0b11_101_110,
+            0x0F            // XOR A, 0x0F
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0xF0);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 4);
+    }
+
+    #[test]
+    fn xor_a_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0xFF,           // LD A, 0xFF
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b00_110_110,
+            0x8A,          // LD (HL), 0x8A
+            0b10_101_110   // XOR A, (HL)
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..4{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0x75);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 0);
         assert_eq!(registers.get_flag_n(), 0);
         assert_eq!(registers.get_flag_cy(), 0);
         assert_eq!(registers.pc(), 8);

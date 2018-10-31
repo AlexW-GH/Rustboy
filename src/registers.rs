@@ -130,7 +130,7 @@ impl Registers {
             de: DE::new(),
             hl: HL::new(),
             sp: 0xFFFE,
-            pc: 0x0
+            pc: 0x100
         }
     }
 
@@ -355,9 +355,7 @@ impl Registers {
 
     pub fn set_flags(&mut self, z: u8, n: u8, h: u8, cy: u8){
         let mut flags = self.f();
-        println!("flags: {:#010b}, z: {:?}", flags, z);
         flags = bit_op::change_bit_to(flags, 7, z);
-        println!("flags: {:#010b}", flags);
         flags = bit_op::change_bit_to(flags, 6, n);
         flags = bit_op::change_bit_to(flags, 5, h);
         flags = bit_op::change_bit_to(flags, 4, cy);
@@ -799,7 +797,7 @@ mod tests {
     use registers::Registers;
 
     #[test]
-    fn everything_zero_after_initialization() {
+    fn everything_setup_after_initialization() {
         let registers = Registers::new();
         assert_eq!(registers.af(), 0);
         assert_eq!(registers.bc(), 0);
@@ -813,7 +811,7 @@ mod tests {
         assert_eq!(registers.f(), 0);
         assert_eq!(registers.h(), 0);
         assert_eq!(registers.l(), 0);
-        assert_eq!(registers.pc(), 0x0);
+        assert_eq!(registers.pc(), 0x100);
         assert_eq!(registers.sp(), 0xFFFE);
     }
 
