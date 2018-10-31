@@ -353,6 +353,17 @@ impl Registers {
         (self.f() >> 4) & 1
     }
 
+    pub fn set_flags(&mut self, z: u8, n: u8, h: u8, cy: u8){
+        let mut flags = self.f();
+        println!("flags: {:#010b}, z: {:?}", flags, z);
+        flags = bit_op::change_bit_to(flags, 7, z);
+        println!("flags: {:#010b}", flags);
+        flags = bit_op::change_bit_to(flags, 6, n);
+        flags = bit_op::change_bit_to(flags, 5, h);
+        flags = bit_op::change_bit_to(flags, 4, cy);
+        self.set_f(flags);
+    }
+
     pub fn set_flags_add(&mut self, operand1: u8, operand2: u8,
                               z: FlagCalculationStatus, n: FlagCalculationStatus,
                               h: FlagCalculationStatus, cy: FlagCalculationStatus){

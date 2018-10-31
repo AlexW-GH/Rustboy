@@ -78,18 +78,18 @@ impl CPU{
             0x98 ... 0x9D => self.sbc_a_r(opcode),
             0x9E => self.sbc_a_mem_hl(),
             0x9F => self.sbc_a_r(opcode),
-            0xA0 ... 0xA5 => self.and_r(),
+            0xA0 ... 0xA5 => self.and_r(opcode),
             0xA6 => self.and_mem_hl(),
-            0xA7 => self.and_r(),
+            0xA7 => self.and_r(opcode),
             0xA8 ... 0xAD => self.xor_r(opcode),
             0xAE => self.xor_mem_hl(),
             0xAF => self.xor_r(opcode),
-            0xB0 ... 0xB5 => self.or_r(),
+            0xB0 ... 0xB5 => self.or_r(opcode),
             0xB6 => self.or_mem_hl(),
-            0xB7 => self.or_r(),
-            0xB8 ... 0xBD => self.cp_r(),
+            0xB7 => self.or_r(opcode),
+            0xB8 ... 0xBD => self.cp_r(opcode),
             0xBE => self.cp_mem_hl(),
-            0xBF => self.cp_r(),
+            0xBF => self.cp_r(opcode),
             0xC1 => self.pop_qq(opcode),
             0xC3 => self.jp_nn(),
             0xC5 => self.push_qq(opcode),
@@ -103,6 +103,7 @@ impl CPU{
             0xE0 => self.ld_mem_n_a(),
             0xE2 => self.ld_mem_c_a(),
             0xE5 => self.push_qq(opcode),
+            0xE6 => self.and_n(),
             0xEA => self.ld_mem_nn_a(),
             0xF0 => self.ld_a_mem_n(),
             0xF2 => self.ld_a_mem_c(),
@@ -675,26 +676,49 @@ impl CPU{
 
     /// AND     r
     /// 10 100 rrr
-    pub fn and_r(&mut self){
-        unimplemented!();
+    pub fn and_r(&mut self, opcode: u8){
+        let register = RegisterR::new(opcode & 0b111);
+        let value = self.registers.read_r(register);
+        let reg_a_value = self.registers.a();
+        println!("AND   {:?}({:?}), {:?}({:?})", RegisterR::A, reg_a_value, register, value);
+        let result = reg_a_value & value;
+        println!("Result: {:?}", result);
+        self.registers.set_flags(if result == 0 {1} else {0}, 0,1, 0);
+        self.registers.set_a(result);
+        self.registers.inc_pc(1);
     }
 
     /// AND     n
     /// 11 100 110
     /// nnnnnnnn
     pub fn and_n(&mut self){
-        unimplemented!();
+        let pc = self.registers.pc();
+        let value = self.read_memory_following_u8(pc);
+        let reg_a_value = self.registers.a();
+        println!("AND   {:?}({:?}), {:?}", RegisterR::A, reg_a_value, value);
+        let result = reg_a_value & value;
+        self.registers.set_flags(if result == 0 {1} else {0}, 0,1, 0);
+        self.registers.set_a(result);
+        self.registers.inc_pc(2);
     }
 
     /// AND     (HL)
     /// 10 100 110
     pub fn and_mem_hl(&mut self){
-        unimplemented!();
+        let address = self.registers.hl();
+        let value = self.read_memory(address);
+        let reg_a_value = self.registers.a();
+        println!("AND   {:?}({:?}), {:?}[{:?}]({:?})",
+                 RegisterR::A, reg_a_value, RegisterDD::HL, address, value);
+        let result = reg_a_value & value;
+        self.registers.set_flags(if result == 0 {1} else {0}, 0,1, 0);
+        self.registers.set_a(result);
+        self.registers.inc_pc(1);
     }
 
     /// OR      r
     /// 10 110 rrr
-    pub fn or_r(&mut self){
+    pub fn or_r(&mut self, opcode: u8){
         unimplemented!();
     }
 
@@ -737,7 +761,7 @@ impl CPU{
 
     /// CP      r
     /// 10 111 rrr
-    pub fn cp_r(&mut self){
+    pub fn cp_r(&mut self, opcode: u8){
         unimplemented!();
     }
 
@@ -1955,9 +1979,9 @@ mod tests {
         let rom = ROM::new(vec![
             0b00_111_110,
             0x3E,           // LD A, 0x3E
-            0b00_101_110,
+            0b00_100_110,
             0x3E,           // LD H, 0x3E
-            0b10_010_101    // ADD A, H
+            0b10_010_100    // ADD A, H
         ]);
         let (mut cpu, memory) = create_cpu(rom);
         for i in 0..3{
@@ -2027,9 +2051,9 @@ mod tests {
             0xC6,           // ADD A, 0xC6
             0b00_111_110,
             0x3B,           // LD A, 0x3B
-            0b00_101_110,
+            0b00_100_110,
             0x2A,           // LD H, 0x2A
-            0b10_011_101    // SBC A, E
+            0b10_011_100    // SBC A, E
         ]);
         let (mut cpu, memory) = create_cpu(rom);
         for i in 0..5{
@@ -2096,5 +2120,73 @@ mod tests {
         assert_eq!(registers.get_flag_n(), 1);
         assert_eq!(registers.get_flag_cy(), 1);
         assert_eq!(registers.pc(), 12);
+    }
+
+    #[test]
+    fn and_a_l() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x5A,           // LD A, 0x5A
+            0b00_101_110,
+            0x3F,           // LD L, 0x3F
+            0b10_100_101    // AND A, L
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = cpu.copy_registers();
+        assert_eq!(registers.a(), 0x1A);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 5);
+    }
+
+    #[test]
+    fn and_a_0x38() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x5A,           // LD A, 0x5A
+            0b11_100_110,
+            0x38            // AND A, 0x38
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = cpu.copy_registers();
+        assert_eq!(registers.a(), 0x18);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 4);
+    }
+
+    #[test]
+    fn and_a_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x5A,           // LD A, 0x5A
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b00_110_110,
+            0x00,          // LD (HL), 0x00
+            0b10_100_110   // SUB A, (HL)
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..4{
+            cpu.step();
+        }
+        let registers = cpu.copy_registers();
+        assert_eq!(registers.a(), 0x00);
+        assert_eq!(registers.get_flag_z(), 1);
+        assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 8);
     }
 }
