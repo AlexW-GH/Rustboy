@@ -119,6 +119,7 @@ impl CPU{
             0xF9 => self.ld_sp_hl(),
             0xFA => self.ld_a_mem_nn(),
             0xFB => self.ei(),
+            0xFE => self.cp_n(),
             _ => {
                 println!("({:#010b})", opcode);
                 unimplemented!();
@@ -803,20 +804,38 @@ impl CPU{
     /// CP      r
     /// 10 111 rrr
     pub fn cp_r(&mut self, opcode: u8){
-        unimplemented!();
+        let register = RegisterR::new(opcode & 0b111);
+        let val_a = self.registers.a();
+        let val_r = self.registers.read_r(register);
+        println!("CP   {:?}({:?}), {:?}({:?})", RegisterR::A, val_a, register, val_r);
+        use registers::FlagCalculationStatus::*;
+        self.registers.set_flags_sub(val_a, val_r, Calculate, Set, Calculate, Calculate);
+        self.registers.inc_pc(1);
     }
 
     /// CP      n
     /// 11 111 110
     /// nnnnnnnn
     pub fn cp_n(&mut self){
-        unimplemented!();
+        let pc = self.registers.pc();
+        let val_a = self.registers.a();
+        let val_n = self.read_memory_following_u8(pc);
+        println!("CP   {:?}({:?}), ({:?})", RegisterR::A, val_a, val_n);
+        use registers::FlagCalculationStatus::*;
+        self.registers.set_flags_sub(val_a, val_n, Calculate, Set, Calculate, Calculate);
+        self.registers.inc_pc(2);
     }
 
     /// CP      (HL)
     /// 10 111 110
     pub fn cp_mem_hl(&mut self){
-        unimplemented!();
+        let hl = self.registers.hl();
+        let val_a = self.registers.a();
+        let val_hl = self.read_memory(hl);
+        println!("SUB  {:?}({:?}), {:?}{:#06x}({:?})", RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
+        use registers::FlagCalculationStatus::*;
+        self.registers.set_flags_sub(val_a, val_hl, Calculate, Set, Calculate, Calculate);
+        self.registers.inc_pc(1);
     }
 
     /// INC     r
@@ -2327,7 +2346,7 @@ mod tests {
     }
 
     #[test]
-    fn xor_a_0x0F() {
+    fn xor_a_0x0f() {
         let rom = ROM::new(vec![
             0b00_111_110,
             0xFF,           // LD A, 0xFF
@@ -2371,4 +2390,73 @@ mod tests {
         assert_eq!(registers.get_flag_cy(), 0);
         assert_eq!(registers.pc(), 8);
     }
+
+    #[test]
+    fn cp_a_b() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x3C,           // LD A, 0x3C
+            0b00_000_110,
+            0x2F,           // LD B, 0x2F
+            0b10_111_000    // CP A, B
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0x3C);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 5);
+    }
+
+    #[test]
+    fn cp_a_0x3c() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x3C,           // LD A, 0x3C
+            0b11_111_110,
+            0x3C            // CP A, 0x3C
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0x3C);
+        assert_eq!(registers.get_flag_z(), 1);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 4);
+    }
+
+    #[test]
+    fn cp_a_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x3C,           // LD A, 0x3C
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b_00_110_110,
+            0x40,          // LD (HL), 0x40
+            0b10_111_110   // SUB A, (HL)
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..4{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0x3C);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.get_flag_cy(), 1);
+        assert_eq!(registers.pc(), 8);
+    }
+
 }
