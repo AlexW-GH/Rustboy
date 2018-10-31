@@ -53,8 +53,11 @@ impl CPU{
             0x26 => self.ld_r_n(opcode),
             0x2A => self.ld_a_mem_hli(),
             0x2E => self.ld_r_n(opcode),
+            0x2D => self.dec_r(opcode),
             0x31 => self.ld_dd_nn(opcode),
             0x32 => self.ld_mem_hld_a(),
+            0x34 => self.inc_mem_hl(),
+            0x35 => self.dec_mem_hl(),
             0x36 => self.ld_mem_hl_n(),
             0x3C => self.inc_r(opcode),
             0x3E => self.ld_r_n(opcode),
@@ -847,14 +850,25 @@ impl CPU{
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add(value, 1,
                                      Calculate, Clear, Calculate, Ignore);
-        self.registers.write_r(register, value+1);
+        self.registers.write_r(register, value.wrapping_add(1));
         self.registers.inc_pc(1);
     }
 
     /// INC     (HL)
     /// 00 110 100
     pub fn inc_mem_hl(&mut self){
-        unimplemented!();
+        let address = self.registers.hl();
+        let value = {
+            let mut memory = self.memory.write().unwrap();
+            let value = memory.read(address);
+            memory.write(address, value.wrapping_add(1));
+            value
+        };
+        println!("INC   {:?}{:#06x}({:?})", RegisterDD::HL, address, value);
+        use registers::FlagCalculationStatus::*;
+        self.registers.set_flags_add(value, 1,
+                                     Calculate, Clear, Calculate, Ignore);
+        self.registers.inc_pc(1);
     }
 
     /// DEC     r
@@ -864,7 +878,7 @@ impl CPU{
         let value = self.registers.read_r(register);
         println!("DEC   {:?}({:?})", register, value);
         use registers::FlagCalculationStatus::*;
-        self.registers.set_flags_add(value, 1,
+        self.registers.set_flags_sub(value, 1,
                                      Calculate, Set, Calculate, Ignore);
         self.registers.write_r(register, value.wrapping_sub(1));
         self.registers.inc_pc(1);
@@ -873,7 +887,18 @@ impl CPU{
     /// DEC     (HL)
     /// 00 110 101
     pub fn dec_mem_hl(&mut self){
-        unimplemented!();
+        let address = self.registers.hl();
+        let value = {
+            let mut memory = self.memory.write().unwrap();
+            let value = memory.read(address);
+            memory.write(address, value.wrapping_sub(1));
+            value
+        };
+        println!("DEC   {:?}{:#06x}({:?})", RegisterDD::HL, address, value);
+        use registers::FlagCalculationStatus::*;
+        self.registers.set_flags_sub(value, 1,
+                                     Calculate, Set, Calculate, Ignore);
+        self.registers.inc_pc(1);
     }
 
 // ---------------------------------------- //
@@ -2457,6 +2482,92 @@ mod tests {
         assert_eq!(registers.get_flag_n(), 1);
         assert_eq!(registers.get_flag_cy(), 1);
         assert_eq!(registers.pc(), 8);
+    }
+
+    #[test]
+    fn inc_r() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0xFF,           // LD A, 0xFF
+            0b00_111_100    // INC A
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0x00);
+        assert_eq!(registers.get_flag_z(), 1);
+        assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 3);
+    }
+
+    #[test]
+    fn inc_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b00_110_110,
+            0x50,          // LD (HL), 0x50
+            0b00_110_100   // INC (HL)
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3 {
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(memory.read().unwrap().read(0x8000), 0x51);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 6);
+    }
+
+    #[test]
+    fn dec_r() {
+        let rom = ROM::new(vec![
+            0b00_101_110,
+            0x01,           // LD L, 0x01
+            0b00_101_101    // DEC L
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.l(), 0x00);
+        assert_eq!(registers.get_flag_z(), 1);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 3);
+    }
+
+    #[test]
+    fn dec_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b00_110_110,
+            0x00,          // LD (HL), 0x00
+            0b00_110_101   // DEC (HL)
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3 {
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(memory.read().unwrap().read(0x8000), 0xFF);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 6);
     }
 
 }
