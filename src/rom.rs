@@ -31,4 +31,18 @@ impl ROM {
         };
         &self.data[start_slice .. end_slice]
     }
+
+    pub fn bank_mut(&mut self, index: usize) -> &mut [u8]{
+        let start_slice = if self.data.len() >= index*4000 {
+            index*4000
+        } else {
+            panic!("Memory Range {:#06x} - {:#06x} out of bounds",index*4000, (index+1)*4000 )
+        };
+        let end_slice = if self.data.len() >= (index+1)*4000 {
+            index+1*4000
+        } else {
+            self.data.len()
+        };
+        self.data[start_slice .. end_slice].as_mut()
+    }
 }

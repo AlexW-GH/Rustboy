@@ -1026,9 +1026,8 @@ impl CPU{
         println!("RL   {:?}({:#010b})", register, value);
         let mut flags = self.registers.f();
         let bit7 = (value >> 7) & 1;
-        let cy = (flags >> 4) & 1;
-        let rotated = (value << 1) + cy;
-        flags = bit_op::change_bit_to(flags, 4, cy);
+        let rotated = (value << 1) | bit7;
+        flags = bit_op::change_bit_to(flags, 4, bit7);
         if rotated == 0 {
             flags = bit_op::set_bit(flags, 7)
         } else {

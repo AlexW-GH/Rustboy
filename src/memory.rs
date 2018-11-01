@@ -30,6 +30,8 @@ const HRAM_OFFSET: u16 = 0xFF80;
 const HRAM_LAST: u16 = 0xFFFE;
 const INTERRUPTS_ENABLE_REGISTER_OFFSET: u16 = 0xFFFF;
 
+const BOOT_ADDRESS: u16 = 0xFF50;
+
 pub struct Memory {
     rom: ROM,
     boot: Vec<u8>,
@@ -73,7 +75,7 @@ impl Memory {
 
     fn map_memory_area_mut(&mut self, address:u16) -> (&mut [u8], u16){
         match address{
-            ROM_BANK_0_OFFSET ... ROM_BANK_0_LAST => unreachable!(),
+            ROM_BANK_0_OFFSET ... ROM_BANK_0_LAST =>(self.rom.bank_mut(0), ROM_BANK_0_OFFSET),
             ROM_BANK_1N_OFFSET ... ROM_BANK_1N_LAST => unreachable!(),
             VRAM_OFFSET ... VRAM_LAST => (&mut self.vram, VRAM_OFFSET),
             RAM_OFFSET ... RAM_LAST => (&mut self.ram, RAM_OFFSET),
@@ -94,8 +96,8 @@ impl Memory {
     fn map_memory_area(&self, address:u16) -> (&[u8], u16){
         match address{
             BOOT_OFFSET ... BOOT_LAST if self.boot_sequence == true => (&self.boot, BOOT_OFFSET),
-            ROM_BANK_0_OFFSET ... ROM_BANK_0_LAST => (&self.rom.bank(0), ROM_BANK_0_OFFSET),
-            ROM_BANK_1N_OFFSET ... ROM_BANK_1N_LAST => (&self.rom.bank(self.selected_rom_bank), ROM_BANK_1N_OFFSET),
+            ROM_BANK_0_OFFSET ... ROM_BANK_0_LAST => (self.rom.bank(0), ROM_BANK_0_OFFSET),
+            ROM_BANK_1N_OFFSET ... ROM_BANK_1N_LAST => (self.rom.bank(self.selected_rom_bank), ROM_BANK_1N_OFFSET),
             VRAM_OFFSET ... VRAM_LAST => (&self.vram, VRAM_OFFSET),
             RAM_OFFSET ... RAM_LAST => (&self.ram, RAM_OFFSET),
             WRAM_0_OFFSET ... WRAM_0_LAST => (&self.wram_0, WRAM_0_OFFSET),
@@ -137,8 +139,14 @@ impl Memory {
     }
 
     pub fn write(&mut self, address: u16, value: u8){
-        let (memory_area, offset) = self.map_memory_area_mut(address);
-        memory_area[(address-offset) as usize] = value;
+        match address{
+            BOOT_ADDRESS => if value != 0 { self.boot_sequence = false} else { self.boot_sequence = true }
+            _ => {
+                let (memory_area, offset) = self.map_memory_area_mut(address);
+                memory_area[(address-offset) as usize] = value;
+            }
+        }
+
     }
 
     pub fn following_u8(&self, address: u16) -> u8 {
