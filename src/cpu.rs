@@ -27,113 +27,112 @@ impl CPU{
     pub fn step(&mut self){
         let pc = self.registers.pc();
         let opcode = self.read_memory(pc);
-        print!("{:#06X}: {:#04X} | ", pc, opcode);
         match opcode {
-            0x00 => self.nop(),
-            0x01 => self.ld_dd_nn(opcode),
-            0x02 => self.ld_mem_bc_a(),
-            0x05 => self.dec_r(opcode),
-            0x06 => self.ld_r_n(opcode),
-            0x08 => self.ld_mem_nn_sp(),
-            0x09 => self.add_hl_ss(opcode),
-            0x0A => self.ld_a_mem_bc(),
-            0x0D => self.dec_r(opcode),
-            0x0E => self.ld_r_n(opcode),
-            0x11 => self.ld_dd_nn(opcode),
-            0x12 => self.ld_mem_de_a(),
-            0x13 => self.inc_ss(opcode),
-            0x14 => self.inc_r(opcode),
-            0x16 => self.ld_r_n(opcode),
-            0x17 => self.rla(),
-            0x18 => self.jr_e(),
-            0x1A => self.ld_a_mem_de(),
-            0x1B => self.dec_ss(opcode),
-            0x1C => self.inc_r(opcode),
-            0x1E => self.ld_r_n(opcode),
-            0x0C => self.inc_r(opcode),
-            0x20 => self.jr_cc_e(opcode),
-            0x21 => self.ld_dd_nn(opcode),
-            0x22 => self.ld_mem_hli_a(),
-            0x23 => self.inc_ss(opcode),
-            0x26 => self.ld_r_n(opcode),
-            0x29 => self.add_hl_ss(opcode),
-            0x2A => self.ld_a_mem_hli(),
-            0x2E => self.ld_r_n(opcode),
-            0x2D => self.dec_r(opcode),
-            0x31 => self.ld_dd_nn(opcode),
-            0x32 => self.ld_mem_hld_a(),
-            0x34 => self.inc_mem_hl(),
-            0x35 => self.dec_mem_hl(),
-            0x36 => self.ld_mem_hl_n(),
-            0x3C => self.inc_r(opcode),
-            0x3E => self.ld_r_n(opcode),
-            0x3A => self.ld_a_mem_hld(),
-            0x42 => self.ld_r_r(opcode),
-            0x45 => self.ld_r_r(opcode),
-            0x46 => self.ld_r_mem_hl(opcode),
-            0x47 => self.ld_r_r(opcode),
-            0x4F => self.ld_r_r(opcode),
-            0x60 => self.ld_mem_hl_r(opcode),
-            0x66 => self.ld_r_mem_hl(opcode),
-            0x67 => self.ld_mem_hl_r(opcode),
-            0x77 => self.ld_mem_hl_r(opcode),
-            0x78 => self.ld_r_r(opcode),
-            0x7C => self.ld_r_r(opcode),
-            0x7D => self.ld_r_r(opcode),
-            0x80 ... 0x85 => self.add_a_r(opcode),
-            0x86 => self.add_a_mem_hl(),
-            0x87 => self.add_a_r(opcode),
-            0x88 ... 0x8D => self.adc_a_r(opcode),
-            0x8E => self.adc_a_mem_hl(),
-            0x8F => self.adc_a_r(opcode),
-            0x90 ... 0x95 => self.sub_a_r(opcode),
-            0x96 => self.sub_a_mem_hl(),
-            0x97 => self.sub_a_r(opcode),
-            0x98 ... 0x9D => self.sbc_a_r(opcode),
-            0x9E => self.sbc_a_mem_hl(),
-            0x9F => self.sbc_a_r(opcode),
-            0xA0 ... 0xA5 => self.and_r(opcode),
-            0xA6 => self.and_mem_hl(),
-            0xA7 => self.and_r(opcode),
-            0xA8 ... 0xAD => self.xor_r(opcode),
-            0xAE => self.xor_mem_hl(),
-            0xAF => self.xor_r(opcode),
-            0xB0 ... 0xB5 => self.or_r(opcode),
-            0xB6 => self.or_mem_hl(),
-            0xB7 => self.or_r(opcode),
-            0xB8 ... 0xBD => self.cp_r(opcode),
-            0xBE => self.cp_mem_hl(),
-            0xBF => self.cp_r(opcode),
-            0xC1 => self.pop_qq(opcode),
-            0xC3 => self.jp_nn(),
-            0xC5 => self.push_qq(opcode),
-            0xC6 => self.add_a_n(),
-            0xC9 => self.ret(),
+            0x00 => self.nop(opcode, pc),
+            0x01 => self.ld_dd_nn(opcode, pc),
+            0x02 => self.ld_mem_bc_a(opcode, pc),
+            0x05 => self.dec_r(opcode, pc),
+            0x06 => self.ld_r_n(opcode, pc),
+            0x08 => self.ld_mem_nn_sp(opcode, pc),
+            0x09 => self.add_hl_ss(opcode, pc),
+            0x0A => self.ld_a_mem_bc(opcode, pc),
+            0x0D => self.dec_r(opcode, pc),
+            0x0E => self.ld_r_n(opcode, pc),
+            0x11 => self.ld_dd_nn(opcode, pc),
+            0x12 => self.ld_mem_de_a(opcode, pc),
+            0x13 => self.inc_ss(opcode, pc),
+            0x14 => self.inc_r(opcode, pc),
+            0x16 => self.ld_r_n(opcode, pc),
+            0x17 => self.rla(opcode, pc),
+            0x18 => self.jr_e(opcode, pc),
+            0x1A => self.ld_a_mem_de(opcode, pc),
+            0x1B => self.dec_ss(opcode, pc),
+            0x1C => self.inc_r(opcode, pc),
+            0x1E => self.ld_r_n(opcode, pc),
+            0x0C => self.inc_r(opcode, pc),
+            0x20 => self.jr_cc_e(opcode, pc),
+            0x21 => self.ld_dd_nn(opcode, pc),
+            0x22 => self.ld_mem_hli_a(opcode, pc),
+            0x23 => self.inc_ss(opcode, pc),
+            0x26 => self.ld_r_n(opcode, pc),
+            0x29 => self.add_hl_ss(opcode, pc),
+            0x2A => self.ld_a_mem_hli(opcode, pc),
+            0x2E => self.ld_r_n(opcode, pc),
+            0x2D => self.dec_r(opcode, pc),
+            0x31 => self.ld_dd_nn(opcode, pc),
+            0x32 => self.ld_mem_hld_a(opcode, pc),
+            0x34 => self.inc_mem_hl(opcode, pc),
+            0x35 => self.dec_mem_hl(opcode, pc),
+            0x36 => self.ld_mem_hl_n(opcode, pc),
+            0x3C => self.inc_r(opcode, pc),
+            0x3E => self.ld_r_n(opcode, pc),
+            0x3A => self.ld_a_mem_hld(opcode, pc),
+            0x42 => self.ld_r_r(opcode, pc),
+            0x45 => self.ld_r_r(opcode, pc),
+            0x46 => self.ld_r_mem_hl(opcode, pc),
+            0x47 => self.ld_r_r(opcode, pc),
+            0x4F => self.ld_r_r(opcode, pc),
+            0x60 => self.ld_mem_hl_r(opcode, pc),
+            0x66 => self.ld_r_mem_hl(opcode, pc),
+            0x67 => self.ld_mem_hl_r(opcode, pc),
+            0x77 => self.ld_mem_hl_r(opcode, pc),
+            0x78 => self.ld_r_r(opcode, pc),
+            0x7C => self.ld_r_r(opcode, pc),
+            0x7D => self.ld_r_r(opcode, pc),
+            0x80 ... 0x85 => self.add_a_r(opcode, pc),
+            0x86 => self.add_a_mem_hl(opcode, pc),
+            0x87 => self.add_a_r(opcode, pc),
+            0x88 ... 0x8D => self.adc_a_r(opcode, pc),
+            0x8E => self.adc_a_mem_hl(opcode, pc),
+            0x8F => self.adc_a_r(opcode, pc),
+            0x90 ... 0x95 => self.sub_a_r(opcode, pc),
+            0x96 => self.sub_a_mem_hl(opcode, pc),
+            0x97 => self.sub_a_r(opcode, pc),
+            0x98 ... 0x9D => self.sbc_a_r(opcode, pc),
+            0x9E => self.sbc_a_mem_hl(opcode, pc),
+            0x9F => self.sbc_a_r(opcode, pc),
+            0xA0 ... 0xA5 => self.and_r(opcode, pc),
+            0xA6 => self.and_mem_hl(opcode, pc),
+            0xA7 => self.and_r(opcode, pc),
+            0xA8 ... 0xAD => self.xor_r(opcode, pc),
+            0xAE => self.xor_mem_hl(opcode, pc),
+            0xAF => self.xor_r(opcode, pc),
+            0xB0 ... 0xB5 => self.or_r(opcode, pc),
+            0xB6 => self.or_mem_hl(opcode, pc),
+            0xB7 => self.or_r(opcode, pc),
+            0xB8 ... 0xBD => self.cp_r(opcode, pc),
+            0xBE => self.cp_mem_hl(opcode, pc),
+            0xBF => self.cp_r(opcode, pc),
+            0xC1 => self.pop_qq(opcode, pc),
+            0xC3 => self.jp_nn(opcode, pc),
+            0xC5 => self.push_qq(opcode, pc),
+            0xC6 => self.add_a_n(opcode, pc),
+            0xC9 => self.ret(opcode, pc),
             0xCB => self.extended_operations(pc),
-            0xCD => self.call_nn(),
-            0xCE => self.adc_a_n(),
-            0xD6 => self.sub_a_n(),
-            0xDC => self.call_cc_nn(opcode),
-            0xDE => self.sbc_a_n(),
-            0xE0 => self.ld_mem_n_a(),
-            0xE2 => self.ld_mem_c_a(),
-            0xE5 => self.push_qq(opcode),
-            0xE6 => self.and_n(),
-            0xE8 => self.add_sp_e(),
-            0xEA => self.ld_mem_nn_a(),
-            0xEE => self.xor_n(),
-            0xF0 => self.ld_a_mem_n(),
-            0xF2 => self.ld_a_mem_c(),
-            0xF3 => self.di(),
-            0xF5 => self.push_qq(opcode),
-            0xF6 => self.or_n(),
-            0xF8 => self.ldhl_sp_e(),
-            0xF9 => self.ld_sp_hl(),
-            0xFA => self.ld_a_mem_nn(),
-            0xFB => self.ei(),
-            0xFE => self.cp_n(),
+            0xCD => self.call_nn(opcode, pc),
+            0xCE => self.adc_a_n(opcode, pc),
+            0xD6 => self.sub_a_n(opcode, pc),
+            0xDC => self.call_cc_nn(opcode, pc),
+            0xDE => self.sbc_a_n(opcode, pc),
+            0xE0 => self.ld_mem_n_a(opcode, pc),
+            0xE2 => self.ld_mem_c_a(opcode, pc),
+            0xE5 => self.push_qq(opcode, pc),
+            0xE6 => self.and_n(opcode, pc),
+            0xE8 => self.add_sp_e(opcode, pc),
+            0xEA => self.ld_mem_nn_a(opcode, pc),
+            0xEE => self.xor_n(opcode, pc),
+            0xF0 => self.ld_a_mem_n(opcode, pc),
+            0xF2 => self.ld_a_mem_c(opcode, pc),
+            0xF3 => self.di(opcode, pc),
+            0xF5 => self.push_qq(opcode, pc),
+            0xF6 => self.or_n(opcode, pc),
+            0xF8 => self.ldhl_sp_e(opcode, pc),
+            0xF9 => self.ld_sp_hl(opcode, pc),
+            0xFA => self.ld_a_mem_nn(opcode, pc),
+            0xFB => self.ei(opcode, pc),
+            0xFE => self.cp_n(opcode, pc),
             _ => {
-                println!("({:#010b})", opcode);
+                debug!("{:#06X}: {:#04X} | ({:#010b})", pc, opcode, opcode);
                 unimplemented!();
             }
         }
@@ -142,33 +141,33 @@ impl CPU{
     fn extended_operations(&mut self, pc: u16){
         let extended_opcode = self.read_memory_following_u8(pc);
         match extended_opcode {
-            0x06 => self.rlc_mem_hl(extended_opcode),
-            0x00 ... 0x07 => self.rlc_r(extended_opcode),
-            0x0E => self.rrc_mem_hl(extended_opcode),
-            0x08 ... 0x0F => self.rrc_r(extended_opcode),
-            0x16 => self.rl_mem_hl(extended_opcode),
-            0x10 ... 0x17 => self.rl_r(extended_opcode),
-            0x1E => self.rr_mem_hl(extended_opcode),
-            0x18 ... 0x1F => self.rr_r(extended_opcode),
-            0x26 => self.sla_mem_hl(extended_opcode),
-            0x20 ... 0x27 => self.sla_r(extended_opcode),
-            0x2E => self.sra_mem_hl(extended_opcode),
-            0x28 ... 0x2F => self.sra_r(extended_opcode),
-            0x36 => self.swap_mem_hl(extended_opcode),
-            0x30 ... 0x37 => self.swap_r(extended_opcode),
-            0x3E => self.srl_mem_hl(extended_opcode),
-            0x38 ... 0x3F => self.srl_r(extended_opcode),
+            0x06 => self.rlc_mem_hl(extended_opcode, pc),
+            0x00 ... 0x07 => self.rlc_r(extended_opcode, pc),
+            0x0E => self.rrc_mem_hl(extended_opcode, pc),
+            0x08 ... 0x0F => self.rrc_r(extended_opcode, pc),
+            0x16 => self.rl_mem_hl(extended_opcode, pc),
+            0x10 ... 0x17 => self.rl_r(extended_opcode, pc),
+            0x1E => self.rr_mem_hl(extended_opcode, pc),
+            0x18 ... 0x1F => self.rr_r(extended_opcode, pc),
+            0x26 => self.sla_mem_hl(extended_opcode, pc),
+            0x20 ... 0x27 => self.sla_r(extended_opcode, pc),
+            0x2E => self.sra_mem_hl(extended_opcode, pc),
+            0x28 ... 0x2F => self.sra_r(extended_opcode, pc),
+            0x36 => self.swap_mem_hl(extended_opcode, pc),
+            0x30 ... 0x37 => self.swap_r(extended_opcode, pc),
+            0x3E => self.srl_mem_hl(extended_opcode, pc),
+            0x38 ... 0x3F => self.srl_r(extended_opcode, pc),
             0x46 | 0x4E | 0x56 | 0x5E |
-            0x66 | 0x6E | 0x76 | 0x7E => self.bit_b_mem_hl(extended_opcode),
-            0x40 ... 0x7F => self.bit_b_r(extended_opcode),
+            0x66 | 0x6E | 0x76 | 0x7E => self.bit_b_mem_hl(extended_opcode, pc),
+            0x40 ... 0x7F => self.bit_b_r(extended_opcode, pc),
             0x86 | 0x8E | 0x96 | 0x9E |
-            0xA6 | 0xAE | 0xB6 | 0xBE => self.res_b_mem_hl(extended_opcode),
-            0x80 ... 0xBF => self.res_b_r(extended_opcode),
+            0xA6 | 0xAE | 0xB6 | 0xBE => self.res_b_mem_hl(extended_opcode, pc),
+            0x80 ... 0xBF => self.res_b_r(extended_opcode, pc),
             0xC6 | 0xCE | 0xD6 | 0xDE |
-            0xE6 | 0xEE | 0xF6 | 0xFE => self.set_b_mem_hl(extended_opcode),
-            0xC0 ... 0xFF => self.set_b_r(extended_opcode),
+            0xE6 | 0xEE | 0xF6 | 0xFE => self.set_b_mem_hl(extended_opcode, pc),
+            0xC0 ... 0xFF => self.set_b_r(extended_opcode, pc),
             _ => {
-                println!("extended opcode: {:#04x}({:#010b})", extended_opcode, extended_opcode);
+                debug!("extended opcode: {:#04x}({:#010b})", extended_opcode, extended_opcode);
                 unimplemented!();
             }
         }
@@ -180,11 +179,11 @@ impl CPU{
 
     /// LD      r, r'
     /// 01 rrr rrr'
-    pub fn ld_r_r(&mut self, opcode: u8){
+    pub fn ld_r_r(&mut self, opcode: u8, pc: u16){
         let target = RegisterR::new((opcode >> 3) & 0b111);
         let source = RegisterR::new(opcode & 0b111);
         let value = self.registers.read_r(source);
-        println!("LD   {:?}, {:?}({:?})", target, source, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}({:?})", pc, opcode, target, source, value);
         self.registers.write_r(target, value);
         self.registers.inc_pc(1);
     }
@@ -192,33 +191,33 @@ impl CPU{
     /// LD      r, n
     /// 00 rrr 110
     /// nnnnnnnn
-    pub fn ld_r_n(&mut self, opcode: u8){
+    pub fn ld_r_n(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let target = RegisterR::new((opcode >> 3) & 0b111);
         let value = self.read_memory_following_u8(pc);
-        println!("LD   {:?}, {:?}", target, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}", pc, opcode, target, value);
         self.registers.write_r(target, value);
         self.registers.inc_pc(2);
     }
 
     /// LD      r, (HL)
     /// 01 rrr 110
-    pub fn ld_r_mem_hl(&mut self, opcode: u8){
+    pub fn ld_r_mem_hl(&mut self, opcode: u8, pc: u16){
         let target = RegisterR::new((opcode >> 3) & 0b111);
         let address = self.registers.hl();
         let value = self.read_memory(address);
-        println!("LD   {:?}, {:?}[{:#06X}]({:?})", target, RegisterSS::HL, address, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}[{:#06X}]({:?})", pc, opcode, target, RegisterSS::HL, address, value);
         self.registers.write_r(target, value);
         self.registers.inc_pc(1);
     }
 
     /// LD      (HL), r
     /// 01 110 rrr
-    pub fn ld_mem_hl_r(&mut self, opcode: u8){
+    pub fn ld_mem_hl_r(&mut self, opcode: u8, pc: u16){
         let source = RegisterR::new(opcode & 0b111);
         let address = self.registers.hl();
         let value = self.registers.read_r(source);
-        println!("LD   {:?}[{:#06X}], {:?}", RegisterSS::HL, address, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}[{:#06X}], {:?}", pc, opcode, RegisterSS::HL, address, value);
         self.write_memory(address, value);
         self.registers.inc_pc(1);
     }
@@ -226,51 +225,51 @@ impl CPU{
     /// LD      (HL), n
     /// 00 110 110
     /// nnnnnnnn
-    pub fn ld_mem_hl_n(&mut self){
+    pub fn ld_mem_hl_n(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let address = self.registers.hl();
         let value = self.read_memory_following_u8(pc);
-        println!("LD   {:?}[{:#06X}], {:?}", RegisterSS::HL, address, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}[{:#06X}], {:?}", pc, opcode, RegisterSS::HL, address, value);
         self.write_memory(address, value);
         self.registers.inc_pc(2);
     }
 
     /// LD      A, (BC)
     /// 00 001 010
-    pub fn ld_a_mem_bc(&mut self){
+    pub fn ld_a_mem_bc(&mut self, opcode: u8, pc: u16){
         let address = self.registers.bc();
         let value = self.read_memory(address);
-        println!("LD   {:?}, {:?}[{:#06X}]({:?})", RegisterR::A, RegisterSS::BC, address, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}[{:#06X}]({:?})", pc, opcode, RegisterR::A, RegisterSS::BC, address, value);
         self.registers.set_a(value);
         self.registers.inc_pc(1);
     }
 
     /// LD      A, (DE)
     /// 00 011 010
-    pub fn ld_a_mem_de(&mut self){
+    pub fn ld_a_mem_de(&mut self, opcode: u8, pc: u16){
         let address = self.registers.de();
         let value = self.read_memory(address);
-        println!("LD   {:?}, {:?}[{:#06X}]({:?})", RegisterR::A, RegisterSS::DE, address, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}[{:#06X}]({:?})", pc, opcode, RegisterR::A, RegisterSS::DE, address, value);
         self.registers.set_a(value);
         self.registers.inc_pc(1);
     }
 
     /// LD      A, (C)
     /// 11 110 010
-    pub fn ld_a_mem_c(&mut self){
+    pub fn ld_a_mem_c(&mut self, opcode: u8, pc: u16){
         let address = 0xFF00  + self.registers.c() as u16;
         let value = self.read_memory(address);
-        println!("LD   {:?}, {:?}[{:#06X}]({:?})", RegisterR::A, RegisterR::C, address, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}[{:#06X}]({:?})", pc, opcode, RegisterR::A, RegisterR::C, address, value);
         self.registers.set_a(value);
         self.registers.inc_pc(1);
     }
 
     /// LD      (C), A
     /// 11 100 010
-    pub fn ld_mem_c_a(&mut self){
+    pub fn ld_mem_c_a(&mut self, opcode: u8, pc: u16){
         let address = 0xFF00  + self.registers.c() as u16;
         let value = self.registers.a();
-        println!("LD   {:?}[{:#06X}], {:?}", RegisterR::C, address, RegisterR::A);
+        debug!("{:#06X}: {:#04X} | LD   {:?}[{:#06X}], {:?}", pc, opcode, RegisterR::C, address, RegisterR::A);
         self.write_memory(address, value);
         self.registers.inc_pc(1);
     }
@@ -278,7 +277,7 @@ impl CPU{
     /// LD      A, (n)
     /// 11 110 000
     /// nnnnnnnn
-    pub fn ld_a_mem_n(&mut self){
+    pub fn ld_a_mem_n(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let address;
         let value;
@@ -287,7 +286,7 @@ impl CPU{
             address = 0xff00 + memory.following_u8(pc) as u16;
             value = memory.read(address);
         }
-        println!("LD   {:?}, [{:#06x}]({:?})", RegisterR::A, address, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}, [{:#06x}]({:?})", pc, opcode, RegisterR::A, address, value);
 
         self.registers.set_a(value);
         self.registers.inc_pc(2);
@@ -296,7 +295,7 @@ impl CPU{
     /// LD      (n), A
     /// 11 100 000
     /// nnnnnnnn
-    pub fn ld_mem_n_a(&mut self){
+    pub fn ld_mem_n_a(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let value = self.registers.a();
         let address;
@@ -305,7 +304,7 @@ impl CPU{
             address = 0xff00 + memory.following_u8(pc) as u16;
             memory.write(address, value);
         }
-        println!("LD   [{:#06X}], {:?}({:?})", address, RegisterR::A, value);
+        debug!("{:#06X}: {:#04X} | LD   [{:#06X}], {:?}({:?})", pc, opcode, address, RegisterR::A, value);
 
         self.registers.inc_pc(2);
     }
@@ -314,7 +313,7 @@ impl CPU{
     /// 11 111 010
     /// nnnnnnnn
     /// nnnnnnnn
-    pub fn ld_a_mem_nn(&mut self){
+    pub fn ld_a_mem_nn(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let address;
         let value;
@@ -323,7 +322,7 @@ impl CPU{
             address = memory.following_u16(pc);
             value = memory.read(address);
         }
-        println!("LD   {:?}, [{:#06x}]({:?})", RegisterR::A, address, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}, [{:#06x}]({:?})", pc, opcode, RegisterR::A, address, value);
 
         self.registers.set_a(value);
         self.registers.inc_pc(3);
@@ -333,7 +332,7 @@ impl CPU{
     /// 11 101 010
     /// nnnnnnnn
     /// nnnnnnnn
-    pub fn ld_mem_nn_a(&mut self){
+    pub fn ld_mem_nn_a(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let value = self.registers.a();
         let address;
@@ -342,17 +341,17 @@ impl CPU{
             address = memory.following_u16(pc);
             memory.write(address, value);
         }
-        println!("LD   [{:#06X}], {:?}({:?})", address, RegisterR::A, value);
+        debug!("{:#06X}: {:#04X} | LD   [{:#06X}], {:?}({:?})", pc, opcode, address, RegisterR::A, value);
 
         self.registers.inc_pc(3);
     }
 
     /// LD      A, (HLI)
     /// 00 101 010
-    pub fn ld_a_mem_hli(&mut self){
+    pub fn ld_a_mem_hli(&mut self, opcode: u8, pc: u16){
         let address = self.registers.hl();
         let value = self.read_memory(address);
-        println!("LD   {:?}, {:?}+[{:#06x}]({:?})", RegisterR::A, RegisterDD::HL, address, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}+[{:#06x}]({:?})", pc, opcode, RegisterR::A, RegisterDD::HL, address, value);
 
         self.registers.set_a(value);
         self.registers.set_hl(address.wrapping_add(1));
@@ -361,10 +360,10 @@ impl CPU{
 
     /// LD      A, (HLD)
     /// 00 111 010
-    pub fn ld_a_mem_hld(&mut self){
+    pub fn ld_a_mem_hld(&mut self, opcode: u8, pc: u16){
         let address = self.registers.hl();
         let value = self.read_memory(address);
-        println!("LD   {:?}, {:?}-[{:#06x}]({:?})", RegisterR::A, RegisterDD::HL, address, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}-[{:#06x}]({:?})", pc, opcode, RegisterR::A, RegisterDD::HL, address, value);
 
         self.registers.set_a(value);
         self.registers.set_hl(address.wrapping_sub(1));
@@ -373,11 +372,11 @@ impl CPU{
 
     /// LD      (BC), A
     /// 00 010 010
-    pub fn ld_mem_bc_a(&mut self){
+    pub fn ld_mem_bc_a(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let value = self.registers.a();
         let address = self.registers.bc();
-        println!("LD   [{:#06X}], {:?}({:?})", address, RegisterR::A, value);
+        debug!("{:#06X}: {:#04X} | LD   [{:#06X}], {:?}({:?})", pc, opcode, address, RegisterR::A, value);
 
         self.write_memory(address, value);
         self.registers.inc_pc(1);
@@ -385,11 +384,11 @@ impl CPU{
 
     /// LD      (DE), A
     /// 00 010 010
-    pub fn ld_mem_de_a(&mut self){
+    pub fn ld_mem_de_a(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let value = self.registers.a();
         let address = self.registers.de();
-        println!("LD   [{:#06X}], {:?}({:?})", address, RegisterR::A, value);
+        debug!("{:#06X}: {:#04X} | LD   [{:#06X}], {:?}({:?})", pc, opcode, address, RegisterR::A, value);
 
         self.write_memory(address, value);
         self.registers.inc_pc(1);
@@ -397,10 +396,10 @@ impl CPU{
 
     /// LD      (HLI), A
     /// 00 100 010
-    pub fn ld_mem_hli_a(&mut self){
+    pub fn ld_mem_hli_a(&mut self, opcode: u8, pc: u16){
         let value = self.registers.a();
         let address = self.registers.hl();
-        println!("LD   {:?}+[{:#06X}], {:?}({:?})", RegisterQQ::HL, address, RegisterR::A, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}+[{:#06X}], {:?}({:?})", pc, opcode, RegisterQQ::HL, address, RegisterR::A, value);
 
         self.write_memory(address, value);
         self.registers.set_hl(address+1);
@@ -409,10 +408,10 @@ impl CPU{
 
     /// LD      (HLD), A
     /// 00 110 010
-    pub fn ld_mem_hld_a(&mut self){
+    pub fn ld_mem_hld_a(&mut self, opcode: u8, pc: u16){
         let value = self.registers.a();
         let address = self.registers.hl();
-        println!("LD   {:?}-[{:#06X}], {:?}({:?})", RegisterQQ::HL, address, RegisterR::A, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}-[{:#06X}], {:?}({:?})", pc, opcode, RegisterQQ::HL, address, RegisterR::A, value);
 
         self.write_memory(address, value);
         self.registers.set_hl(address-1);
@@ -427,20 +426,20 @@ impl CPU{
     /// 00 dd0 001
     /// nnnnnnnn
     /// nnnnnnnn
-    pub fn ld_dd_nn(&mut self, opcode: u8){
+    pub fn ld_dd_nn(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let target = RegisterDD::new((opcode >> 4) & 0b11);
         let value = self.read_memory_following_u16(pc);
-        println!("LD   {:?}, {:?}", target, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}", pc, opcode, target, value);
         self.registers.write_dd(target, value);
         self.registers.inc_pc(3);
     }
 
     /// LD      sp, hl
     /// 11 111 001
-    pub fn ld_sp_hl(&mut self){
+    pub fn ld_sp_hl(&mut self, opcode: u8, pc: u16){
         let value = self.registers.hl();
-        println!("LD   {:?}, {:?}({:?})", RegisterDD::SP, RegisterDD::HL, value);
+        debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}({:?})", pc, opcode, RegisterDD::SP, RegisterDD::HL, value);
         self.registers.set_sp(value);
         self.registers.inc_pc(1);
 
@@ -448,11 +447,11 @@ impl CPU{
 
     /// PUSH    qq
     /// 11 qq0 101
-    pub fn push_qq(&mut self, opcode: u8){
+    pub fn push_qq(&mut self, opcode: u8, pc: u16){
         let register = RegisterQQ::new((opcode >> 4) & 0b11);
         let value = self.registers.read_qq(register);
         let sp = self.registers.sp();
-        println!("PUSH {:?}({:?})", register, value);
+        debug!("{:#06X}: {:#04X} | PUSH {:?}({:?})", pc, opcode, register, value);
         {
             let mut memory = self.memory.write().unwrap();
             memory.push_u16_stack(value, sp);
@@ -463,14 +462,14 @@ impl CPU{
 
     /// POP    qq
     /// 11 qq0 001
-    pub fn pop_qq(&mut self, opcode: u8){
+    pub fn pop_qq(&mut self, opcode: u8, pc: u16){
         let register = RegisterQQ::new((opcode >> 4) & 0b11);
         let sp = self.registers.sp();
         let value = {
             let memory = self.memory.read().unwrap();
             memory.pop_u16_stack(sp)
         };
-        println!("POP  {:?}({:?})", register, value);
+        debug!("{:#06X}: {:#04X} | POP  {:?}({:?})", pc, opcode, register, value);
 
         self.registers.write_qq(register, value);
         self.registers.set_sp(sp+2);
@@ -480,11 +479,11 @@ impl CPU{
     /// LDHL    SP, e
     /// 11 111 00
     /// eeeeeeee
-    pub fn ldhl_sp_e(&mut self){
+    pub fn ldhl_sp_e(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let sp = self.registers.sp();
         let value = self.read_memory_following_u8(pc);
-        println!("LDHL {:?}, {:?}", RegisterDD::SP, value);
+        debug!("{:#06X}: {:#04X} | LDHL {:?}, {:?}", pc, opcode, RegisterDD::SP, value);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add_u16(sp, value as u16, Clear, Clear, Calculate, Calculate);
         self.registers.set_hl(sp.wrapping_add(value as i8 as u16));
@@ -495,11 +494,11 @@ impl CPU{
     /// 00 001 000
     /// nnnnnnnn
     /// nnnnnnnn
-    pub fn ld_mem_nn_sp(&mut self){
+    pub fn ld_mem_nn_sp(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let address = self.read_memory_following_u16(pc);
         let value = self.registers.sp();
-        println!("LD   {:#06x}, {:?}({:?})", address, RegisterDD::SP, value);
+        debug!("{:#06X}: {:#04X} | LD   {:#06x}, {:?}({:?})", pc, opcode, address, RegisterDD::SP, value);
         {
             let mut memory = self.memory.write().unwrap();
             memory.write(address, (value & 0xFF) as u8);
@@ -514,11 +513,11 @@ impl CPU{
 
     /// ADD     A, r
     /// 10 000 rrr
-    pub fn add_a_r(&mut self, opcode: u8){
+    pub fn add_a_r(&mut self, opcode: u8, pc: u16){
         let register = RegisterR::new(opcode & 0b111);
         let val_a = self.registers.a();
         let val_r = self.registers.read_r(register);
-        println!("ADD  {:?}({:?}), {:?}({:?})", RegisterR::A, val_a, register, val_r);
+        debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), {:?}({:?})", pc, opcode, RegisterR::A, val_a, register, val_r);
         let result = val_a.wrapping_add(val_r);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add(val_a, val_r, Calculate, Clear, Calculate, Calculate);
@@ -529,11 +528,11 @@ impl CPU{
     /// ADD     A, n
     /// 11 000 110
     /// nnnnnnnn
-    pub fn add_a_n(&mut self){
+    pub fn add_a_n(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let val_a = self.registers.a();
         let val_n = self.read_memory_following_u8(pc);
-        println!("ADD  {:?}({:?}), ({:?})", RegisterR::A, val_a, val_n);
+        debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
         let result = val_a.wrapping_add(val_n);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add(val_a, val_n, Calculate, Clear, Calculate, Calculate);
@@ -543,11 +542,11 @@ impl CPU{
 
     /// ADD     A, (HL)
     /// 10 000 110
-    pub fn add_a_mem_hl(&mut self){
+    pub fn add_a_mem_hl(&mut self, opcode: u8, pc: u16){
         let hl = self.registers.hl();
         let val_a = self.registers.a();
         let val_hl = self.read_memory(hl);
-        println!("ADD  {:?}({:?}), {:?}{:#06x}({:?})", RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
+        debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
         let result = val_a.wrapping_add(val_hl);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add(val_a, val_hl, Calculate, Clear, Calculate, Calculate);
@@ -557,12 +556,12 @@ impl CPU{
 
     /// ADC     A, r
     /// 10 001 rrr
-    pub fn adc_a_r(&mut self, opcode: u8){
+    pub fn adc_a_r(&mut self, opcode: u8, pc: u16){
         let register = RegisterR::new(opcode & 0b111);
         let val_a = self.registers.a();
         let val_r = self.registers.read_r(register);
         let cy_flag = self.registers.get_flag_cy();
-        println!("ADC  {:?}({:?}), {:?}({:?})", RegisterR::A, val_a, register, val_r);
+        debug!("{:#06X}: {:#04X} | ADC  {:?}({:?}), {:?}({:?})", pc, opcode, RegisterR::A, val_a, register, val_r);
         let result = val_a.wrapping_add(val_r).wrapping_add(cy_flag);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add_with_carry(val_a, val_r, Calculate, Clear, Calculate, Calculate);
@@ -573,12 +572,12 @@ impl CPU{
     /// ADC     A, n
     /// 11 001 110
     /// nnnnnnnn
-    pub fn adc_a_n(&mut self){
+    pub fn adc_a_n(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let val_a = self.registers.a();
         let val_n = self.read_memory_following_u8(pc);
         let cy_flag = self.registers.get_flag_cy();
-        println!("ADC  {:?}({:?}), ({:?})", RegisterR::A, val_a, val_n);
+        debug!("{:#06X}: {:#04X} | ADC  {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
         let result = val_a.wrapping_add(val_n).wrapping_add(cy_flag);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add_with_carry(val_a, val_n, Calculate, Clear, Calculate, Calculate);
@@ -588,12 +587,12 @@ impl CPU{
 
     /// ADC     A, (HL)
     /// 10 001 110
-    pub fn adc_a_mem_hl(&mut self){
+    pub fn adc_a_mem_hl(&mut self, opcode: u8, pc: u16){
         let hl = self.registers.hl();
         let val_a = self.registers.a();
         let val_hl = self.read_memory(hl);
         let cy_flag = self.registers.get_flag_cy();
-        println!("ADC  {:?}({:?}), {:?}{:#06x}({:?})", RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
+        debug!("{:#06X}: {:#04X} | ADC  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
         let result = val_a.wrapping_add(val_hl).wrapping_add(cy_flag);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add_with_carry(val_a, val_hl, Calculate, Clear, Calculate, Calculate);
@@ -603,11 +602,11 @@ impl CPU{
 
     /// SUB     A, r
     /// 10 010 rrr
-    pub fn sub_a_r(&mut self, opcode: u8){
+    pub fn sub_a_r(&mut self, opcode: u8, pc: u16){
         let register = RegisterR::new(opcode & 0b111);
         let val_a = self.registers.a();
         let val_r = self.registers.read_r(register);
-        println!("SUB  {:?}({:?}), {:?}({:?})", RegisterR::A, val_a, register, val_r);
+        debug!("{:#06X}: {:#04X} | SUB  {:?}({:?}), {:?}({:?})", pc, opcode, RegisterR::A, val_a, register, val_r);
         let result = val_a.wrapping_sub(val_r);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_sub(val_a, val_r, Calculate, Set, Calculate, Calculate);
@@ -618,11 +617,11 @@ impl CPU{
     /// SUB     A, n
     /// 11 010 110
     /// nnnnnnnn
-    pub fn sub_a_n(&mut self){
+    pub fn sub_a_n(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let val_a = self.registers.a();
         let val_n = self.read_memory_following_u8(pc);
-        println!("SUB  {:?}({:?}), ({:?})", RegisterR::A, val_a, val_n);
+        debug!("{:#06X}: {:#04X} | SUB  {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
         let result = val_a.wrapping_sub(val_n);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_sub(val_a, val_n, Calculate, Set, Calculate, Calculate);
@@ -632,11 +631,11 @@ impl CPU{
 
     /// SUB     A, (HL)
     /// 10 010 110
-    pub fn sub_a_mem_hl(&mut self){
+    pub fn sub_a_mem_hl(&mut self, opcode: u8, pc: u16){
         let hl = self.registers.hl();
         let val_a = self.registers.a();
         let val_hl = self.read_memory(hl);
-        println!("SUB  {:?}({:?}), {:?}{:#06x}({:?})", RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
+        debug!("{:#06X}: {:#04X} | SUB  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
         let result = val_a.wrapping_sub(val_hl);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_sub(val_a, val_hl, Calculate, Set, Calculate, Calculate);
@@ -646,12 +645,12 @@ impl CPU{
 
     /// SBC     A, r
     /// 10 010 rrr
-    pub fn sbc_a_r(&mut self, opcode: u8){
+    pub fn sbc_a_r(&mut self, opcode: u8, pc: u16){
         let register = RegisterR::new(opcode & 0b111);
         let val_a = self.registers.a();
         let val_r = self.registers.read_r(register);
         let cy_flag = self.registers.get_flag_cy();
-        println!("SBC  {:?}({:?}), {:?}({:?})", RegisterR::A, val_a, register, val_r);
+        debug!("{:#06X}: {:#04X} | SBC  {:?}({:?}), {:?}({:?})", pc, opcode, RegisterR::A, val_a, register, val_r);
         let result = val_a.wrapping_sub(val_r).wrapping_sub(cy_flag);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_sub_with_carry(val_a, val_r, Calculate, Set, Calculate, Calculate);
@@ -662,12 +661,12 @@ impl CPU{
     /// SBC     A, n
     /// 11 010 110
     /// nnnnnnnn
-    pub fn sbc_a_n(&mut self){
+    pub fn sbc_a_n(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let val_a = self.registers.a();
         let val_n = self.read_memory_following_u8(pc);
         let cy_flag = self.registers.get_flag_cy();
-        println!("SBC  {:?}({:?}), ({:?})", RegisterR::A, val_a, val_n);
+        debug!("{:#06X}: {:#04X} | SBC  {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
         let result = val_a.wrapping_sub(val_n).wrapping_sub(cy_flag);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_sub_with_carry(val_a, val_n, Calculate, Set, Calculate, Calculate);
@@ -677,12 +676,12 @@ impl CPU{
 
     /// SBC     A, (HL)
     /// 10 010 110
-    pub fn sbc_a_mem_hl(&mut self){
+    pub fn sbc_a_mem_hl(&mut self, opcode: u8, pc: u16){
         let hl = self.registers.hl();
         let val_a = self.registers.a();
         let val_hl = self.read_memory(hl);
         let cy_flag = self.registers.get_flag_cy();
-        println!("SBC  {:?}({:?}), {:?}{:#06x}({:?})", RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
+        debug!("{:#06X}: {:#04X} | SBC  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
         let result = val_a.wrapping_sub(val_hl).wrapping_sub(cy_flag);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_sub_with_carry(val_a, val_hl, Calculate, Set, Calculate, Calculate);
@@ -692,11 +691,11 @@ impl CPU{
 
     /// AND     r
     /// 10 100 rrr
-    pub fn and_r(&mut self, opcode: u8){
+    pub fn and_r(&mut self, opcode: u8, pc: u16){
         let register = RegisterR::new(opcode & 0b111);
         let value = self.registers.read_r(register);
         let reg_a_value = self.registers.a();
-        println!("AND  {:?}({:?}), {:?}({:?})", RegisterR::A, reg_a_value, register, value);
+        debug!("{:#06X}: {:#04X} | AND  {:?}({:?}), {:?}({:?})", pc, opcode, RegisterR::A, reg_a_value, register, value);
         let result = reg_a_value & value;
         self.registers.set_flags(if result == 0 {1} else {0}, 0,1, 0);
         self.registers.set_a(result);
@@ -706,11 +705,11 @@ impl CPU{
     /// AND     n
     /// 11 100 110
     /// nnnnnnnn
-    pub fn and_n(&mut self){
+    pub fn and_n(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let value = self.read_memory_following_u8(pc);
         let reg_a_value = self.registers.a();
-        println!("AND  {:?}({:?}), {:?}", RegisterR::A, reg_a_value, value);
+        debug!("{:#06X}: {:#04X} | AND  {:?}({:?}), {:?}", pc, opcode, RegisterR::A, reg_a_value, value);
         let result = reg_a_value & value;
         self.registers.set_flags(if result == 0 {1} else {0}, 0,1, 0);
         self.registers.set_a(result);
@@ -719,11 +718,11 @@ impl CPU{
 
     /// AND     (HL)
     /// 10 100 110
-    pub fn and_mem_hl(&mut self){
+    pub fn and_mem_hl(&mut self, opcode: u8, pc: u16){
         let address = self.registers.hl();
         let value = self.read_memory(address);
         let reg_a_value = self.registers.a();
-        println!("AND  {:?}({:?}), {:?}[{:?}]({:?})",
+        debug!("{:#06X}: {:#04X} | AND  {:?}({:?}), {:?}[{:?}]({:?})", pc, opcode,
                  RegisterR::A, reg_a_value, RegisterDD::HL, address, value);
         let result = reg_a_value & value;
         self.registers.set_flags(if result == 0 {1} else {0}, 0,1, 0);
@@ -733,11 +732,11 @@ impl CPU{
 
     /// OR      r
     /// 10 110 rrr
-    pub fn or_r(&mut self, opcode: u8){
+    pub fn or_r(&mut self, opcode: u8, pc: u16){
         let register = RegisterR::new(opcode & 0b111);
         let value = self.registers.read_r(register);
         let reg_a_value = self.registers.a();
-        println!("OR   {:?}({:?}), {:?}({:?})", RegisterR::A, reg_a_value, register, value);
+        debug!("{:#06X}: {:#04X} | OR   {:?}({:?}), {:?}({:?})", pc, opcode, RegisterR::A, reg_a_value, register, value);
         let result = reg_a_value | value;
         self.registers.set_flags(if result == 0 {1} else {0}, 0,0, 0);
         self.registers.set_a(result);
@@ -747,11 +746,11 @@ impl CPU{
     /// OR      n
     /// 11 110 110
     /// nnnnnnnn
-    pub fn or_n(&mut self){
+    pub fn or_n(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let value = self.read_memory_following_u8(pc);
         let reg_a_value = self.registers.a();
-        println!("OR   {:?}({:?}), {:?}", RegisterR::A, reg_a_value, value);
+        debug!("{:#06X}: {:#04X} | OR   {:?}({:?}), {:?}", pc, opcode, RegisterR::A, reg_a_value, value);
         let result = reg_a_value | value;
         self.registers.set_flags(if result == 0 {1} else {0}, 0,0, 0);
         self.registers.set_a(result);
@@ -760,11 +759,11 @@ impl CPU{
 
     /// OR      (HL)
     /// 10 110 110
-    pub fn or_mem_hl(&mut self){
+    pub fn or_mem_hl(&mut self, opcode: u8, pc: u16){
         let address = self.registers.hl();
         let value = self.read_memory(address);
         let reg_a_value = self.registers.a();
-        println!("OR   {:?}({:?}), {:?}[{:?}]({:?})",
+        debug!("{:#06X}: {:#04X} | OR   {:?}({:?}), {:?}[{:?}]({:?})", pc, opcode,
                  RegisterR::A, reg_a_value, RegisterDD::HL, address, value);
         let result = reg_a_value | value;
         self.registers.set_flags(if result == 0 {1} else {0}, 0,0, 0);
@@ -774,11 +773,11 @@ impl CPU{
 
     /// XOR     r
     /// 10 101 rrr
-    pub fn xor_r(&mut self, opcode: u8){
+    pub fn xor_r(&mut self, opcode: u8, pc: u16){
         let register = RegisterR::new(opcode & 0b111);
         let value = self.registers.read_r(register);
         let reg_a_value = self.registers.a();
-        println!("XOR  {:?}({:?}), A({:?})", register, value, reg_a_value);
+        debug!("{:#06X}: {:#04X} | XOR  {:?}({:?}), A({:?})", pc, opcode, register, value, reg_a_value);
         let result = reg_a_value ^ value;
         self.registers.set_flags(if result == 0 {1} else {0}, 0,0, 0);
         self.registers.set_a(result);
@@ -788,11 +787,11 @@ impl CPU{
     /// XOR     n
     /// 11 101 110
     /// nnnnnnnn
-    pub fn xor_n(&mut self){
+    pub fn xor_n(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let value = self.read_memory_following_u8(pc);
         let reg_a_value = self.registers.a();
-        println!("XOR  {:?}({:?}), {:?}", RegisterR::A, reg_a_value, value);
+        debug!("{:#06X}: {:#04X} | XOR  {:?}({:?}), {:?}", pc, opcode, RegisterR::A, reg_a_value, value);
         let result = reg_a_value ^ value;
         self.registers.set_flags(if result == 0 {1} else {0}, 0,0, 0);
         self.registers.set_a(result);
@@ -801,12 +800,11 @@ impl CPU{
 
     /// XOR     (HL)
     /// 10 101 110
-    pub fn xor_mem_hl(&mut self){
+    pub fn xor_mem_hl(&mut self, opcode: u8, pc: u16){
         let address = self.registers.hl();
         let value = self.read_memory(address);
         let reg_a_value = self.registers.a();
-        println!("XOR  {:?}({:?}), {:?}[{:?}]({:?})",
-                 RegisterR::A, reg_a_value, RegisterDD::HL, address, value);
+        debug!("{:#06X}: {:#04X} | XOR  {:?}({:?}), {:?}[{:?}]({:?})", pc, opcode, RegisterR::A, reg_a_value, RegisterDD::HL, address, value);
         let result = reg_a_value ^ value;
         self.registers.set_flags(if result == 0 {1} else {0}, 0,0, 0);
         self.registers.set_a(result);
@@ -815,11 +813,11 @@ impl CPU{
 
     /// CP      r
     /// 10 111 rrr
-    pub fn cp_r(&mut self, opcode: u8){
+    pub fn cp_r(&mut self, opcode: u8, pc: u16){
         let register = RegisterR::new(opcode & 0b111);
         let val_a = self.registers.a();
         let val_r = self.registers.read_r(register);
-        println!("CP   {:?}({:?}), {:?}({:?})", RegisterR::A, val_a, register, val_r);
+        debug!("{:#06X}: {:#04X} | CP   {:?}({:?}), {:?}({:?})", pc, opcode, RegisterR::A, val_a, register, val_r);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_sub(val_a, val_r, Calculate, Set, Calculate, Calculate);
         self.registers.inc_pc(1);
@@ -828,11 +826,11 @@ impl CPU{
     /// CP      n
     /// 11 111 110
     /// nnnnnnnn
-    pub fn cp_n(&mut self){
+    pub fn cp_n(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let val_a = self.registers.a();
         let val_n = self.read_memory_following_u8(pc);
-        println!("CP   {:?}({:?}), ({:?})", RegisterR::A, val_a, val_n);
+        debug!("{:#06X}: {:#04X} | CP   {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_sub(val_a, val_n, Calculate, Set, Calculate, Calculate);
         self.registers.inc_pc(2);
@@ -840,11 +838,11 @@ impl CPU{
 
     /// CP      (HL)
     /// 10 111 110
-    pub fn cp_mem_hl(&mut self){
+    pub fn cp_mem_hl(&mut self, opcode: u8, pc: u16){
         let hl = self.registers.hl();
         let val_a = self.registers.a();
         let val_hl = self.read_memory(hl);
-        println!("SUB  {:?}({:?}), {:?}{:#06x}({:?})", RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
+        debug!("{:#06X}: {:#04X} | SUB  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_sub(val_a, val_hl, Calculate, Set, Calculate, Calculate);
         self.registers.inc_pc(1);
@@ -852,10 +850,10 @@ impl CPU{
 
     /// INC     r
     /// 00 rrr 100
-    pub fn inc_r(&mut self, opcode: u8){
+    pub fn inc_r(&mut self, opcode: u8, pc: u16){
         let register = RegisterR::new((opcode >> 3) & 0b111);
         let value = self.registers.read_r(register);
-        println!("INC  {:?}({:?})", register, value);
+        debug!("{:#06X}: {:#04X} | INC  {:?}({:?})", pc, opcode, register, value);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add(value, 1,
                                      Calculate, Clear, Calculate, Ignore);
@@ -865,7 +863,7 @@ impl CPU{
 
     /// INC     (HL)
     /// 00 110 100
-    pub fn inc_mem_hl(&mut self){
+    pub fn inc_mem_hl(&mut self, opcode: u8, pc: u16){
         let address = self.registers.hl();
         let value = {
             let mut memory = self.memory.write().unwrap();
@@ -873,7 +871,7 @@ impl CPU{
             memory.write(address, value.wrapping_add(1));
             value
         };
-        println!("INC  {:?}{:#06x}({:?})", RegisterDD::HL, address, value);
+        debug!("{:#06X}: {:#04X} | INC  {:?}{:#06x}({:?})", pc, opcode, RegisterDD::HL, address, value);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add(value, 1,
                                      Calculate, Clear, Calculate, Ignore);
@@ -882,10 +880,10 @@ impl CPU{
 
     /// DEC     r
     /// 00 rrr 101
-    pub fn dec_r(&mut self, opcode: u8){
+    pub fn dec_r(&mut self, opcode: u8, pc: u16){
         let register = RegisterR::new((opcode >> 3) & 0b111);
         let value = self.registers.read_r(register);
-        println!("DEC  {:?}({:?})", register, value);
+        debug!("{:#06X}: {:#04X} | DEC  {:?}({:?})", pc, opcode, register, value);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_sub(value, 1,
                                      Calculate, Set, Calculate, Ignore);
@@ -895,7 +893,7 @@ impl CPU{
 
     /// DEC     (HL)
     /// 00 110 101
-    pub fn dec_mem_hl(&mut self){
+    pub fn dec_mem_hl(&mut self, opcode: u8, pc: u16){
         let address = self.registers.hl();
         let value = {
             let mut memory = self.memory.write().unwrap();
@@ -903,7 +901,7 @@ impl CPU{
             memory.write(address, value.wrapping_sub(1));
             value
         };
-        println!("DEC  {:?}{:#06x}({:?})", RegisterDD::HL, address, value);
+        debug!("{:#06X}: {:#04X} | DEC  {:?}{:#06x}({:?})", pc, opcode, RegisterDD::HL, address, value);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_sub(value, 1,
                                      Calculate, Set, Calculate, Ignore);
@@ -916,11 +914,11 @@ impl CPU{
 
     /// ADD     HL, ss
     /// 00 ss1 001
-    pub fn add_hl_ss(&mut self, opcode: u8){
+    pub fn add_hl_ss(&mut self, opcode: u8, pc: u16){
         let register = RegisterSS::new((opcode >> 4) & 0b111);
         let value = self.registers.read_ss(register);
         let reg_hl_value = self.registers.hl();
-        println!("ADD  {:?}({:?}), {:?}({:?})", RegisterSS::HL, reg_hl_value, register, value);
+        debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), {:?}({:?})", pc, opcode, RegisterSS::HL, reg_hl_value, register, value);
         let result = reg_hl_value.wrapping_add(value);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add_u16(reg_hl_value, value as u16, Ignore, Clear, Calculate, Calculate);
@@ -931,11 +929,11 @@ impl CPU{
     /// ADD     SP, e
     /// 11 101 000
     /// eeeeeeee
-    pub fn add_sp_e(&mut self){
+    pub fn add_sp_e(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let val_sp = self.registers.sp();
         let val_n = self.read_memory_following_u8(pc);
-        println!("ADD  {:?}({:?}), ({:?})", RegisterSS::SP, val_sp, val_n);
+        debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), ({:?})", pc, opcode, RegisterSS::SP, val_sp, val_n);
         let result = Self::add_signed(val_sp, val_n);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add_u16(val_sp, val_n as u16, Clear, Clear, Calculate, Calculate);
@@ -945,10 +943,10 @@ impl CPU{
 
     /// INC     ss
     /// 00 ss0 011
-    pub fn inc_ss(&mut self, opcode: u8){
+    pub fn inc_ss(&mut self, opcode: u8, pc: u16){
         let register = RegisterSS::new((opcode >> 4) & 0b11);
         let value = self.registers.read_ss(register);
-        println!("INC  {:?}({:?})", register, value);
+        debug!("{:#06X}: {:#04X} | INC  {:?}({:?})", pc, opcode, register, value);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add_u16(value, 1,
                                      Ignore, Ignore, Ignore, Ignore);
@@ -958,10 +956,10 @@ impl CPU{
 
     /// DEC     ss
     /// 00 ss1 011
-    pub fn dec_ss(&mut self, opcode: u8){
+    pub fn dec_ss(&mut self, opcode: u8, pc: u16){
         let register = RegisterSS::new((opcode >> 4) & 0b11);
         let value = self.registers.read_ss(register);
-        println!("DEC  {:?}({:?})", register, value);
+        debug!("{:#06X}: {:#04X} | DEC  {:?}({:?})", pc, opcode, register, value);
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_sub_u16(value, 1,
                                          Ignore, Ignore, Ignore, Ignore);
@@ -975,55 +973,55 @@ impl CPU{
 
     /// RLCA
     /// 00 000 111
-    pub fn rlca(&mut self){
+    pub fn rlca(&mut self, opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// RLA
     /// 00 010 111
-    pub fn rla(&mut self){
-        self.rl_r_internal(RegisterR::A);
+    pub fn rla(&mut self, opcode: u8, pc: u16){
+        self.rl_r_internal(opcode, pc,RegisterR::A);
         self.registers.inc_pc(1);
     }
 
     /// RRCA
     /// 00 001 111
-    pub fn rrca(&mut self){
+    pub fn rrca(&mut self, opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// RRA
     /// 00 011 111
-    pub fn rra(&mut self){
+    pub fn rra(&mut self, opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// RLC     r
     /// 11 001 011
     /// 00 000 rrr
-    pub fn rlc_r(&mut self, ext_opcode: u8){
+    pub fn rlc_r(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// RLC     (HL)
     /// 11 001 011
     /// 00 000 110
-    pub fn rlc_mem_hl(&mut self, ext_opcode: u8){
+    pub fn rlc_mem_hl(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// RL      r
     /// 11 001 011
     /// 00 010 rrr
-    pub fn rl_r(&mut self, ext_opcode: u8){
+    pub fn rl_r(&mut self, ext_opcode: u8, pc: u16){
         let register = RegisterR::new(ext_opcode & 0b111);
-        self.rl_r_internal(register);
+        self.rl_r_internal(ext_opcode, pc, register);
         self.registers.inc_pc(2);
     }
 
-    fn rl_r_internal(&mut self, register: RegisterR) {
+    fn rl_r_internal(&mut self, opcode: u8, pc: u16, register: RegisterR) {
         let value = self.registers.read_r(register);
-        println!("RL   {:?}({:#010b})", register, value);
+        debug!("{:#06X}: {:#04X} | RL   {:?}({:#010b})", pc, opcode, register, value);
         let mut flags = self.registers.f();
         let bit7 = (value >> 7) & 1;
         let rotated = (value << 1) | bit7;
@@ -1040,91 +1038,91 @@ impl CPU{
     /// RL      (HL)
     /// 11 001 011
     /// 00 010 110
-    pub fn rl_mem_hl(&mut self, ext_opcode: u8){
+    pub fn rl_mem_hl(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// RRC     r
     /// 11 001 011
     /// 00 001 rrr
-    pub fn rrc_r(&mut self, ext_opcode: u8){
+    pub fn rrc_r(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// RRC     (HL)
     /// 11 001 011
     /// 00 001 110
-    pub fn rrc_mem_hl(&mut self, ext_opcode: u8){
+    pub fn rrc_mem_hl(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// RR      r
     /// 11 001 011
     /// 00 011 rrr
-    pub fn rr_r(&mut self, ext_opcode: u8){
+    pub fn rr_r(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// RR      (HL)
     /// 11 001 011
     /// 00 011 110
-    pub fn rr_mem_hl(&mut self, ext_opcode: u8){
+    pub fn rr_mem_hl(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// SLA     r
     /// 11 001 011
     /// 00 100 rrr
-    pub fn sla_r(&mut self, ext_opcode: u8){
+    pub fn sla_r(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// SLA     (HL)
     /// 11 001 011
     /// 00 100 110
-    pub fn sla_mem_hl(&mut self, ext_opcode: u8){
+    pub fn sla_mem_hl(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// SRA     r
     /// 11 001 011
     /// 00 100 rrr
-    pub fn sra_r(&mut self, ext_opcode: u8){
+    pub fn sra_r(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// SRA     (HL)
     /// 11 001 011
     /// 00 100 110
-    pub fn sra_mem_hl(&mut self, ext_opcode: u8){
+    pub fn sra_mem_hl(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// SRL     r
     /// 11 001 011
     /// 00 111 rrr
-    pub fn srl_r(&mut self, ext_opcode: u8){
+    pub fn srl_r(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// SRL     (HL)
     /// 11 001 011
     /// 00 111 110
-    pub fn srl_mem_hl(&mut self, ext_opcode: u8){
+    pub fn srl_mem_hl(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// SWAP    r
     /// 11 001 011
     /// 00 110 rrr
-    pub fn swap_r(&mut self, ext_opcode: u8){
+    pub fn swap_r(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// SWAP    (HL)
     /// 11 001 011
     /// 00 110 110
-    pub fn swap_mem_hl(&mut self, ext_opcode: u8){
+    pub fn swap_mem_hl(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
@@ -1135,11 +1133,11 @@ impl CPU{
     /// BIT     b, r
     /// 11 001 011
     /// 01 bbb rrr
-    pub fn bit_b_r(&mut self, ext_opcode: u8){
+    pub fn bit_b_r(&mut self, ext_opcode: u8, pc: u16){
         let register = RegisterR::new(ext_opcode & 0b111);
         let value = self.registers.read_r(register);
         let bit = (ext_opcode >> 3) & 0b111;
-        println!("BIT  {:?}, {:?}({:#010b})", bit, register, value);
+        debug!("{:#06X}: {:#04X} | BIT  {:?}, {:?}({:#010b})", pc, ext_opcode, bit, register, value);
 
         let bit_value = (value >> bit & 0b1);
         let flags_changed = if bit_value == 0 {
@@ -1154,11 +1152,11 @@ impl CPU{
     /// BIT     b, (HL)
     /// 11 001 011
     /// 01 bbb 110
-    pub fn bit_b_mem_hl(&mut self, ext_opcode: u8){
+    pub fn bit_b_mem_hl(&mut self, ext_opcode: u8, pc: u16){
         let address = self.registers.hl();
         let value = self.read_memory(address);
         let bit = (ext_opcode >> 3) & 0b111;
-        println!("BIT  {:?}, [{:#06x}]({:#010b})", bit, address, value);
+        debug!("{:#06X}: {:#04X} | BIT  {:?}, [{:#06x}]({:#010b})", pc, ext_opcode, bit, address, value);
 
         let bit_value = (value >> bit & 0b1);
         let flags_changed = if bit_value == 0 {
@@ -1173,28 +1171,28 @@ impl CPU{
     /// SET     b, r
     /// 11 001 011
     /// 11 bbb rrr
-    pub fn set_b_r(&mut self, ext_opcode: u8){
+    pub fn set_b_r(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// SET     b, (HL)
     /// 11 001 011
     /// 11 bbb 110
-    pub fn set_b_mem_hl(&mut self, ext_opcode: u8){
+    pub fn set_b_mem_hl(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// RES     b, r
     /// 11 001 011
     /// 10 bbb rrr
-    pub fn res_b_r(&mut self, ext_opcode: u8){
+    pub fn res_b_r(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// RES     b, (HL)
     /// 11 001 011
     /// 10 bbb 110
-    pub fn res_b_mem_hl(&mut self, ext_opcode: u8){
+    pub fn res_b_mem_hl(&mut self, ext_opcode: u8, pc: u16){
         unimplemented!();
     }
 
@@ -1206,10 +1204,10 @@ impl CPU{
     /// 11 000 011
     /// nnnnnnnn
     /// nnnnnnnn
-    pub fn jp_nn(&mut self){
+    pub fn jp_nn(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let address = self.read_memory_following_u16(pc);
-        println!("JP   {:#06X}", address);
+        debug!("{:#06X}: {:#04X} | JP   {:#06X}", pc, opcode, address);
         self.registers.set_pc(address);
     }
 
@@ -1217,27 +1215,26 @@ impl CPU{
     /// 11 0cc 011
     /// nnnnnnnn
     /// nnnnnnnn
-    pub fn jp_cc_nn(&mut self, opcode: u8){
+    pub fn jp_cc_nn(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let condition = Condition::new((opcode>>3) & 0b11);
         let address = self.read_memory_following_u16(pc);
-        print!("JP   {:?}, {:#06X}", condition, address);
         if self.registers.check_condition(condition) {
-            println!(" ||| (jp)");
+            debug!("{:#06X}: {:#04X} | JP   {:?}, {:#06X} ||| (jp)", pc, opcode, condition, address);
             self.registers.set_pc(address);
         } else {
-            println!(" ||| (skip)");
-            self.registers.inc_pc(1);
+            debug!("{:#06X}: {:#04X} | JP   {:?}, {:#06X}  ||| (skip)", pc, opcode, condition, address);
+            self.registers.inc_pc(3);
         }
     }
 
     /// JR      e
     /// 00 011 000
     /// eeeeeeee
-    pub fn jr_e(&mut self){
+    pub fn jr_e(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let value = self.read_memory_following_u8(pc);
-        println!("JR   {:?}", value as i8);
+        debug!("{:#06X}: {:#04X} | JR   {:?}", pc, opcode, value as i8);
         let pc = Self::add_signed(pc, value);
         self.registers.set_pc(pc+2);
     }
@@ -1245,24 +1242,23 @@ impl CPU{
     /// JR      cc, e
     /// 00 1cc 000
     /// eeeeeeee
-    pub fn jr_cc_e(&mut self, opcode: u8){
+    pub fn jr_cc_e(&mut self, opcode: u8, pc: u16){
         let pc = self.registers.pc();
         let condition = Condition::new((opcode>>3) & 0b11);
         let value = self.read_memory_following_u8(pc);
-        print!("JR   {:?}, {:?}", condition, value as i8);
         if self.registers.check_condition(condition) {
-            println!(" ||| (jp)");
+            debug!("{:#06X}: {:#04X} | JR   {:?}, {:?} ||| (jp)", pc, opcode, condition, value as i8);
             let pc = Self::add_signed(pc, value);
             self.registers.set_pc(pc+2);
         } else {
-            println!(" ||| (skip)");
-            self.registers.inc_pc(1);
+            debug!("{:#06X}: {:#04X} | JR   {:?}, {:?} ||| (skip)", pc, opcode, condition, value as i8);
+            self.registers.inc_pc(2);
         }
     }
 
     /// JP      (HL)
     /// 11 101 001
-    pub fn jp_mem_hl(&mut self){
+    pub fn jp_mem_hl(&mut self, opcode: u8, pc: u16){
         unimplemented!();
     }
 
@@ -1274,11 +1270,11 @@ impl CPU{
     /// 11 001 101
     /// nnnnnnnn
     /// nnnnnnnn
-    pub fn call_nn(&mut self){
+    pub fn call_nn(&mut self, opcode: u8, pc: u16){
         let mut pc = self.registers.pc();
         let address = self.read_memory_following_u16(pc);
         let mut sp = self.registers.sp();
-        println!("CALL {:#06x}", address);
+        debug!("{:#06X}: {:#04X} | CALL {:#06x}", pc, opcode, address);
         {
             let mut memory = self.memory.write().unwrap();
             memory.push_u16_stack(pc, sp);
@@ -1293,13 +1289,12 @@ impl CPU{
     /// 11 0cc 100
     /// nnnnnnnn
     /// nnnnnnnn
-    pub fn call_cc_nn(&mut self, opcode: u8){
+    pub fn call_cc_nn(&mut self, opcode: u8, pc: u16){
         let mut pc = self.registers.pc();
         let condition = Condition::new((opcode>>3) & 0b11);
         let address = self.read_memory_following_u16(pc);
-        print!("CALL {:#06x}", address);
         if self.registers.check_condition(condition) {
-            println!(" ||| (jp)");
+            debug!("{:#06X}: {:#04X} | CALL {:#06x} ||| (jp)", pc, opcode, address);
             let mut sp = self.registers.sp();
             {
                 let mut memory = self.memory.write().unwrap();
@@ -1310,7 +1305,7 @@ impl CPU{
             self.registers.set_sp(sp);
             self.registers.set_pc(pc);
         } else {
-            println!(" ||| (skip)");
+            debug!("{:#06X}: {:#04X} | CALL {:#06x} ||| (skip)", pc, opcode, address);
             self.registers.inc_pc(3);
         }
 
@@ -1318,13 +1313,13 @@ impl CPU{
 
     /// RET
     /// 11 001 001
-    pub fn ret(&mut self){
+    pub fn ret(&mut self, opcode: u8, pc: u16){
         let mut sp = self.registers.sp();
         let pc = {
             let memory = self.memory.read().unwrap();
             memory.pop_u16_stack(sp)
         };
-        println!("RET  [{:#06x}]", pc);
+        debug!("{:#06X}: {:#04X} | RET  [{:#06x}]", pc, opcode, pc);
         sp = sp + 2;
         self.registers.set_sp(sp);
         self.registers.set_pc(pc);
@@ -1332,19 +1327,19 @@ impl CPU{
 
     /// RET
     /// 11 001 001
-    pub fn reti(&mut self){
+    pub fn reti(&mut self, opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// RET     cc
     /// 11 0cc 000
-    pub fn ret_cc(&mut self){
+    pub fn ret_cc(&mut self, opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// RST     t
     /// 11 ttt 111
-    pub fn rst_t(&mut self){
+    pub fn rst_t(&mut self, opcode: u8, pc: u16){
         unimplemented!();
     }
 
@@ -1355,48 +1350,48 @@ impl CPU{
 
     /// DAA
     /// 00 100 111
-    pub fn daa(&mut self){
+    pub fn daa(&mut self, opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// CPL
     /// 00 101 111
-    pub fn cpl(&mut self){
+    pub fn cpl(&mut self, opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// NOP
     /// 00 000 000
-    pub fn nop(&mut self){
-        println!("NOP");
+    pub fn nop(&mut self, opcode: u8, pc: u16){
+        debug!("NOP");
         self.registers.inc_pc(1);
     }
 
     /// HALT
     /// 01 110 110
-    pub fn halt(&mut self){
+    pub fn halt(&mut self, opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// STOP
     /// 00 010 000
     /// 00 000 000
-    pub fn stop(&mut self){
+    pub fn stop(&mut self, opcode: u8, pc: u16){
         unimplemented!();
     }
 
     /// EI
     /// 11 111 011
-    pub fn ei(&mut self){
-        println!("EI");
+    pub fn ei(&mut self, opcode: u8, pc: u16){
+        debug!("{:#06X}: {:#04X} | EI", pc, opcode);
         self.interrupt.write().unwrap().master_enable = true;
         self.registers.inc_pc(1);
     }
 
     /// DI
     /// 11 110 011
-    pub fn di(&mut self){
-        println!("DI");
+    pub fn di(&mut self, opcode: u8, pc: u16){
+        debug!("{:#06X}: {:#04X} | DI", pc, opcode);
         self.interrupt.write().unwrap().master_enable = false;
         self.registers.inc_pc(1);
     }
@@ -1432,13 +1427,27 @@ impl CPU{
 
 #[cfg(test)]
 mod tests {
+    extern crate simplelog;
+
     use std::sync::{Arc, RwLock};
     use cpu::CPU;
     use rom::ROM;
     use memory::Memory;
     use interrupt_controller::InterruptController;
+    use simplelog::CombinedLogger;
+    use simplelog::TermLogger;
+    use log::LevelFilter;
+    use simplelog::Config;
+    use simplelog::SimpleLogger;
+    use simplelog::WriteLogger;
+    use std::io;
+    use simplelog::TestLogger;
 
     fn create_cpu(rom: ROM) -> (CPU, Arc<RwLock<Memory>>){
+        let logger = TestLogger::init(LevelFilter::Debug, Config::default());
+        if logger.is_ok() {
+            logger.unwrap();
+        }
         let memory = Arc::new(RwLock::new(Memory::new(rom, false)));
         let interrupt = Arc::new(RwLock::new(InterruptController::new()));
         let mut cpu = CPU::new(interrupt, memory.clone(), false);

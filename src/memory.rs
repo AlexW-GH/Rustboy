@@ -141,6 +141,10 @@ impl Memory {
     pub fn write(&mut self, address: u16, value: u8){
         match address{
             BOOT_ADDRESS => if value != 0 { self.boot_sequence = false} else { self.boot_sequence = true }
+            0xFF02 => if value == 0x81 {
+                let (memory_area, offset) = self.map_memory_area(address);
+                println!("{}", *memory_area.get((0xFF01-offset) as usize).unwrap())
+            }
             _ => {
                 let (memory_area, offset) = self.map_memory_area_mut(address);
                 memory_area[(address-offset) as usize] = value;

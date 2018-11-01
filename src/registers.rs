@@ -545,7 +545,6 @@ impl Registers {
                     FlagCalculationOperation::Add => {
                         let mut result = operand1 & 0xFFF;
                         result += operand2 & 0xFFF;
-                        println!("result: {:#06x}", result);
                         if result >= 0x1000 {
                             bit_op::set_bit(flags, 5)
                         } else {
@@ -607,7 +606,6 @@ impl Registers {
                     FlagCalculationOperation::Add => operand1.wrapping_add(operand2).wrapping_add(flag_z),
                     FlagCalculationOperation::Sub => operand1.wrapping_sub(operand2).wrapping_sub(flag_z),
                 };
-                println!("Zero; {:?}", result);
                 if result == 0 {
                     bit_op::set_bit(flags, 7)
                 } else {

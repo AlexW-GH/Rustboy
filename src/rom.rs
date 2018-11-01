@@ -4,9 +4,9 @@ pub struct ROM {
 
 impl ROM {
     pub fn new(game: Vec<u8>) -> ROM{
-        let mut data = vec![0; 8000];
+        let mut data = vec![0; 0x8000];
         for (i, val) in game.iter().enumerate(){
-            if i<8000 {
+            if i<0x8000 {
                 data[i] = *val;
             } else {
                 data.push(*val);
@@ -19,13 +19,13 @@ impl ROM {
         *self.data.get(address as usize).unwrap()
     }
     pub fn bank(&self, index: usize) -> &[u8]{
-        let start_slice = if self.data.len() >= index*4000 {
+        let start_slice = if self.data.len() >= index*0x4000 {
             index*4000
         } else {
-            panic!("Memory Range {:#06x} - {:#06x} out of bounds",index*4000, (index+1)*4000 )
+            panic!("Memory Range {:#06x} - {:#06x} out of bounds",index*0x4000, (index+1)*0x4000 )
         };
-        let end_slice = if self.data.len() >= (index+1)*4000 {
-            index+1*4000
+        let end_slice = if self.data.len() >= (index+1)*0x4000 {
+            index+1*0x4000
         } else {
             self.data.len()
         };
@@ -33,13 +33,13 @@ impl ROM {
     }
 
     pub fn bank_mut(&mut self, index: usize) -> &mut [u8]{
-        let start_slice = if self.data.len() >= index*4000 {
-            index*4000
+        let start_slice = if self.data.len() >= index*0x4000 {
+            index*0x4000
         } else {
-            panic!("Memory Range {:#06x} - {:#06x} out of bounds",index*4000, (index+1)*4000 )
+            panic!("Memory Range {:#06x} - {:#06x} out of bounds",index*0x4000, (index+1)*0x4000 )
         };
-        let end_slice = if self.data.len() >= (index+1)*4000 {
-            index+1*4000
+        let end_slice = if self.data.len() >= (index+1)*0x4000 {
+            index+1*0x4000
         } else {
             self.data.len()
         };

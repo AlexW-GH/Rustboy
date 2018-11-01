@@ -5,3 +5,5 @@ authors = ["Alex <mithnar333@googlemail.com>"]
 
 [dependencies]
 clap = "2.32"
+log = "0.4"
+simplelog = { git = "https://github.com/AlexW-GH/simplelog.rs" }

@@ -1,4 +1,9 @@
+#[macro_use]
+extern crate log;
+extern crate simplelog;
 extern crate clap;
+
+use simplelog::*;
 
 mod cpu;
 mod registers;
@@ -21,10 +26,12 @@ use cpu::CPU;
 use interrupt_controller::InterruptController;
 
 use clap::{Arg, App};
+use std::fs::OpenOptions;
 
 
 fn main() {
     let (filename, boot) = retrieve_options();
+    setup_logging(&filename);
     let mut file = File::open(filename).expect("file not found");
     let rom = ROM::new(read_game(&mut file));
     let memory = Arc::new(RwLock::new(Memory::new(rom, boot)));
@@ -84,4 +91,14 @@ fn retrieve_options() -> (String, bool) {
     let game = matches.value_of("game").unwrap().to_string();
     let boot = matches.is_present("boot");
     (game, boot)
+}
+
+fn setup_logging(file_name: &str){
+    let file_name = file_name.split("/").collect::<Vec<_>>().last().unwrap().to_string();
+    let log_path = format!("logs/{}.log", file_name);
+    CombinedLogger::init(
+        vec![
+            WriteLogger::new(LevelFilter::Debug, Config::default(), File::create(log_path).unwrap()),
+        ]
+    ).unwrap();
 }
