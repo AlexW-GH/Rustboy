@@ -1,6 +1,11 @@
+use std::fs::File;
+use std::io::Read;
+
 use rom::ROM;
 use registers::Registers;
 
+const BOOT_OFFSET: u16 = 0x0000;
+const BOOT_LAST: u16 = 0x00FF;
 const ROM_BANK_0_OFFSET: u16 = 0x0000;
 const ROM_BANK_0_LAST: u16 = 0x3FFF ;
 const ROM_BANK_1N_OFFSET: u16 = 0x4000;
@@ -27,6 +32,7 @@ const INTERRUPTS_ENABLE_REGISTER_OFFSET: u16 = 0xFFFF;
 
 pub struct Memory {
     rom: ROM,
+    boot: Vec<u8>,
     vram: [u8; 0x2000],
     ram: [u8; 0x2000],
     wram_0: [u8; 0x1000],
@@ -39,14 +45,17 @@ pub struct Memory {
 
     selected_rom_bank: usize,
     selected_wram_bank: usize,
+    boot_sequence: bool
 }
 
 impl Memory {
-    pub fn new(rom: ROM) -> Memory {
+    pub fn new(rom: ROM, boot_sequence: bool) -> Memory {
+        let boot = Self::read_boot_data(boot_sequence);
         let mut wram_1n = Vec::new();
         wram_1n.push([0; 0x1000]);
         Memory {
             rom,
+            boot,
             vram: [0; 0x2000],
             ram: [0; 0x2000],
             wram_0: [0; 0x1000],
@@ -58,6 +67,7 @@ impl Memory {
             interrupts_enable_register: [0; 0x0001],
             selected_rom_bank: 0,
             selected_wram_bank: 0,
+            boot_sequence,
         }
     }
 
@@ -83,6 +93,7 @@ impl Memory {
 
     fn map_memory_area(&self, address:u16) -> (&[u8], u16){
         match address{
+            BOOT_OFFSET ... BOOT_LAST if self.boot_sequence == true => (&self.boot, BOOT_OFFSET),
             ROM_BANK_0_OFFSET ... ROM_BANK_0_LAST => (&self.rom.bank(0), ROM_BANK_0_OFFSET),
             ROM_BANK_1N_OFFSET ... ROM_BANK_1N_LAST => (&self.rom.bank(self.selected_rom_bank), ROM_BANK_1N_OFFSET),
             VRAM_OFFSET ... VRAM_LAST => (&self.vram, VRAM_OFFSET),
@@ -138,6 +149,15 @@ impl Memory {
     pub fn following_u16(&self, address: u16) -> u16 {
         let (memory_area, offset) = self.map_memory_area(address);
         ((*memory_area.get((address-offset) as usize + 2).unwrap() as u16) << 8)  + *memory_area.get((address-offset) as usize + 1).unwrap() as u16
+    }
+
+    fn read_boot_data(boot_sequence: bool) -> Vec<u8>{
+        let mut game = Vec::new();
+        if boot_sequence {
+            let mut file = File::open("assets/boot.gb").expect("Boot Sequence not found");
+            file.read_to_end(&mut game).expect("something went wrong reading the file");
+        }
+        game
     }
 
 }

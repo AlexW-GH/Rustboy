@@ -20,8 +20,8 @@ pub struct CPU{
 }
 
 impl CPU{
-    pub fn new(interrupt: Arc<RwLock<InterruptController>>, memory: Arc<RwLock<Memory>>) -> CPU{
-        CPU {registers: Registers::new(), interrupt, memory}
+    pub fn new(interrupt: Arc<RwLock<InterruptController>>, memory: Arc<RwLock<Memory>>, boot_sequence: bool) -> CPU{
+        CPU {registers: Registers::new(boot_sequence), interrupt, memory}
     }
 
     pub fn step(&mut self){
@@ -113,6 +113,7 @@ impl CPU{
             0xCD => self.call_nn(),
             0xCE => self.adc_a_n(),
             0xD6 => self.sub_a_n(),
+            0xDC => self.call_cc_nn(opcode),
             0xDE => self.sbc_a_n(),
             0xE0 => self.ld_mem_n_a(),
             0xE2 => self.ld_mem_c_a(),
@@ -1293,8 +1294,27 @@ impl CPU{
     /// 11 0cc 100
     /// nnnnnnnn
     /// nnnnnnnn
-    pub fn call_cc_nn(&mut self){
-        unimplemented!();
+    pub fn call_cc_nn(&mut self, opcode: u8){
+        let mut pc = self.registers.pc();
+        let condition = Condition::new((opcode>>3) & 0b11);
+        let address = self.read_memory_following_u16(pc);
+        print!("CALL {:#06x}", address);
+        if self.registers.check_condition(condition) {
+            println!(" ||| (jp)");
+            let mut sp = self.registers.sp();
+            {
+                let mut memory = self.memory.write().unwrap();
+                memory.push_u16_stack(pc, sp);
+            }
+            sp = sp -2;
+            pc = address;
+            self.registers.set_sp(sp);
+            self.registers.set_pc(pc);
+        } else {
+            println!(" ||| (skip)");
+            self.registers.inc_pc(3);
+        }
+
     }
 
     /// RET
@@ -1420,9 +1440,9 @@ mod tests {
     use interrupt_controller::InterruptController;
 
     fn create_cpu(rom: ROM) -> (CPU, Arc<RwLock<Memory>>){
-        let memory = Arc::new(RwLock::new(Memory::new(rom)));
+        let memory = Arc::new(RwLock::new(Memory::new(rom, false)));
         let interrupt = Arc::new(RwLock::new(InterruptController::new()));
-        let mut cpu = CPU::new(interrupt, memory.clone());
+        let mut cpu = CPU::new(interrupt, memory.clone(), false);
         cpu.registers.set_pc(0);
         (cpu, memory)
     }

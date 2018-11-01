@@ -24,19 +24,19 @@ use clap::{Arg, App};
 
 
 fn main() {
-    let filename = retrieve_path_to_game();
+    let (filename, boot) = retrieve_options();
     let mut file = File::open(filename).expect("file not found");
     let rom = ROM::new(read_game(&mut file));
-    let memory = Arc::new(RwLock::new(Memory::new(rom)));
+    let memory = Arc::new(RwLock::new(Memory::new(rom, boot)));
     let interrupt = Arc::new(RwLock::new(InterruptController::new()));
-    let mut cpu = CPU::new(interrupt, memory.clone());
+    let mut cpu = CPU::new(interrupt, memory.clone(), boot);
     //handle_header(&memory);
     let cpu_handle = thread::spawn(move || {
         loop{
             cpu.step();
         }
     });
-    cpu_handle.join().unwrap_or(panic!("at the disco"));
+    cpu_handle.join().unwrap_or(panic!("the disco"));
 
 }
 
@@ -68,7 +68,7 @@ fn read_game(file: &mut File) -> Vec<u8>{
     game
 }
 
-fn retrieve_path_to_game() -> String {
+fn retrieve_options() -> (String, bool) {
     let matches = App::new("Rustboy")
         .version("0.1")
         .author("Alexander W.")
@@ -76,6 +76,12 @@ fn retrieve_path_to_game() -> String {
         .arg(Arg::with_name("game")
             .help("path of game to play")
             .required(true))
+        .arg(Arg::with_name("boot")
+                 .help("enable boot sequence")
+                 .short("b")
+                 .long("boot"))
         .get_matches();
-    matches.value_of("game").unwrap().to_string()
+    let game = matches.value_of("game").unwrap().to_string();
+    let boot = matches.is_present("boot");
+    (game, boot)
 }

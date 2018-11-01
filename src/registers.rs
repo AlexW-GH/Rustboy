@@ -123,14 +123,15 @@ struct HLSingle {
 
 impl Registers {
 
-    pub fn new() -> Registers{
+    pub fn new(boot_sequence: bool) -> Registers{
+        let pc = if boot_sequence {0x0000} else {0x0100};
         Registers{
             af: AF::new(),
             bc: BC::new(),
             de: DE::new(),
             hl: HL::new(),
             sp: 0xFFFE,
-            pc: 0x100
+            pc
         }
     }
 
@@ -811,7 +812,7 @@ mod tests {
 
     #[test]
     fn everything_setup_after_initialization() {
-        let registers = Registers::new();
+        let registers = Registers::new(false);
         assert_eq!(registers.af(), 0);
         assert_eq!(registers.bc(), 0);
         assert_eq!(registers.de(), 0);
@@ -829,8 +830,27 @@ mod tests {
     }
 
     #[test]
+    fn everything_setup_after_initialization_with_boot_sequence() {
+        let registers = Registers::new(true);
+        assert_eq!(registers.af(), 0);
+        assert_eq!(registers.bc(), 0);
+        assert_eq!(registers.de(), 0);
+        assert_eq!(registers.hl(), 0);
+        assert_eq!(registers.a(), 0);
+        assert_eq!(registers.b(), 0);
+        assert_eq!(registers.c(), 0);
+        assert_eq!(registers.d(), 0);
+        assert_eq!(registers.e(), 0);
+        assert_eq!(registers.f(), 0);
+        assert_eq!(registers.h(), 0);
+        assert_eq!(registers.l(), 0);
+        assert_eq!(registers.pc(), 0x0);
+        assert_eq!(registers.sp(), 0xFFFE);
+    }
+
+    #[test]
     fn set_af_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_af(0xABCD);
         assert_eq!(registers.af(), 0xABCD);
         assert_eq!(registers.a(), 0xAB);
@@ -839,7 +859,7 @@ mod tests {
 
     #[test]
     fn set_af_singles_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_a(0xAB);
         registers.set_f(0xCD);
         assert_eq!(registers.af(), 0xABCD);
@@ -849,7 +869,7 @@ mod tests {
 
     #[test]
     fn set_a_singles_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_a(0xAB);
         assert_eq!(registers.af(), 0xAB00);
         assert_eq!(registers.a(), 0xAB);
@@ -858,7 +878,7 @@ mod tests {
 
     #[test]
     fn set_f_singles_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_f(0xCD);
         assert_eq!(registers.af(), 0x00CD);
         assert_eq!(registers.a(), 0x00);
@@ -867,7 +887,7 @@ mod tests {
 
     #[test]
     fn set_bc_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_bc(0xABCD);
         assert_eq!(registers.bc(), 0xABCD);
         assert_eq!(registers.b(), 0xAB);
@@ -876,7 +896,7 @@ mod tests {
 
     #[test]
     fn set_bc_singles_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_b(0xAB);
         registers.set_c(0xCD);
         assert_eq!(registers.bc(), 0xABCD);
@@ -886,7 +906,7 @@ mod tests {
 
     #[test]
     fn set_b_singles_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_b(0xAB);
         assert_eq!(registers.bc(), 0xAB00);
         assert_eq!(registers.b(), 0xAB);
@@ -895,7 +915,7 @@ mod tests {
 
     #[test]
     fn set_c_singles_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_c(0xCD);
         assert_eq!(registers.bc(), 0x00CD);
         assert_eq!(registers.b(), 0x00);
@@ -904,7 +924,7 @@ mod tests {
 
     #[test]
     fn set_de_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_de(0xABCD);
         assert_eq!(registers.de(), 0xABCD);
         assert_eq!(registers.d(), 0xAB);
@@ -913,7 +933,7 @@ mod tests {
 
     #[test]
     fn set_de_singles_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_d(0xAB);
         registers.set_e(0xCD);
         assert_eq!(registers.de(), 0xABCD);
@@ -923,7 +943,7 @@ mod tests {
 
     #[test]
     fn set_d_singles_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_d(0xAB);
         assert_eq!(registers.de(), 0xAB00);
         assert_eq!(registers.d(), 0xAB);
@@ -932,7 +952,7 @@ mod tests {
 
     #[test]
     fn set_e_singles_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_e(0xCD);
         assert_eq!(registers.de(), 0x00CD);
         assert_eq!(registers.d(), 0x00);
@@ -941,7 +961,7 @@ mod tests {
 
     #[test]
     fn set_hl_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_hl(0xABCD);
         assert_eq!(registers.hl(), 0xABCD);
         assert_eq!(registers.h(), 0xAB);
@@ -950,7 +970,7 @@ mod tests {
 
     #[test]
     fn set_hl_singles_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_h(0xAB);
         registers.set_l(0xCD);
         assert_eq!(registers.hl(), 0xABCD);
@@ -960,7 +980,7 @@ mod tests {
 
     #[test]
     fn set_h_singles_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_h(0xAB);
         assert_eq!(registers.hl(), 0xAB00);
         assert_eq!(registers.h(), 0xAB);
@@ -969,7 +989,7 @@ mod tests {
 
     #[test]
     fn set_l_singles_correct() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_l(0xCD);
         assert_eq!(registers.hl(), 0x00CD);
         assert_eq!(registers.h(), 0x00);
@@ -978,7 +998,7 @@ mod tests {
 
     #[test]
     fn set_sp_and_pc() {
-        let mut registers = Registers::new();
+        let mut registers = Registers::new(false);
         registers.set_sp(0xABCD);
         registers.set_pc(0x1234);
         assert_eq!(registers.sp(), 0xABCD);

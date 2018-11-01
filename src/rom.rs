@@ -11,7 +11,6 @@ impl ROM {
             } else {
                 data.push(*val);
             }
-
         }
         ROM { data }
     }
