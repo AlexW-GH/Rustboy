@@ -25,7 +25,7 @@ pub mod bit_op{
             panic!("invalid bit (>7)");
         }
         if value > 1 {
-            panic!("bit can only be set to 0 or 1");
+            panic!("bit can only be set to 0 or 1 {}", value);
         }
         number & !(1 << bit) | (value << bit)
     }

@@ -823,7 +823,7 @@ mod tests {
         assert_eq!(registers.h(), 0);
         assert_eq!(registers.l(), 0);
         assert_eq!(registers.pc(), 0x0);
-        assert_eq!(registers.sp(), 0xFFFE);
+        assert_eq!(registers.sp(), 0x0);
     }
 
     #[test]

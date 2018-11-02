@@ -55,6 +55,7 @@ impl Memory {
         let boot = Self::read_boot_data(boot_sequence);
         let mut wram_1n = Vec::new();
         wram_1n.push([0; 0x1000]);
+        wram_1n.push([0; 0x1000]);
         let memory =Memory {
             rom,
             boot,
@@ -67,8 +68,8 @@ impl Memory {
             io_registers: [0; 0x0080],
             hram: [0; 0x007F],
             interrupts_enable_register: [0; 0x0001],
-            selected_rom_bank: 0,
-            selected_wram_bank: 0,
+            selected_rom_bank: 1,
+            selected_wram_bank: 1,
             boot_sequence,
         };
         Self::init_memory(memory, boot_sequence)

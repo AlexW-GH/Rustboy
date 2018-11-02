@@ -1244,13 +1244,12 @@ impl CPU{
         let bit = (ext_opcode >> 3) & 0b111;
         debug!("{:#06X}: {:#04X} | BIT  {:?}, {:?}({:#010b})", pc, ext_opcode, bit, register, value);
 
-        let bit_value = (value >> bit & 0b1);
-        let flags_changed = if bit_value == 0 {
-            bit_op::set_bit(self.registers.f(), bit)
-        } else {
-            bit_op::clear_bit(self.registers.f(), bit)
-        };
-        self.registers.set_f(flags_changed);
+        let bit_value = if ((value >> bit) & 0b1) == 0 {1} else {0};
+        let mut flags = self.registers.f();
+        flags = bit_op::set_bit(flags, 5);
+        flags = bit_op::clear_bit(flags, 6);
+        flags = bit_op::change_bit_to(flags, 7, bit_value);
+        self.registers.set_f(flags);
         self.registers.inc_pc(2);
     }
 
@@ -1263,13 +1262,12 @@ impl CPU{
         let bit = (ext_opcode >> 3) & 0b111;
         debug!("{:#06X}: {:#04X} | BIT  {:?}, [{:#06x}]({:#010b})", pc, ext_opcode, bit, address, value);
 
-        let bit_value = (value >> bit & 0b1);
-        let flags_changed = if bit_value == 0 {
-            bit_op::set_bit(self.registers.f(), bit)
-        } else {
-            bit_op::clear_bit(self.registers.f(), bit)
-        };
-        self.registers.set_f(flags_changed);
+        let bit_value = if ((value >> bit) & 0b1) == 0 {1} else {0};
+        let mut flags = self.registers.f();
+        flags = bit_op::set_bit(flags, 5);
+        flags = bit_op::clear_bit(flags, 6);
+        flags = bit_op::change_bit_to(flags, 7, bit_value);
+        self.registers.set_f(flags);
         self.registers.inc_pc(2);
     }
 
@@ -3146,6 +3144,46 @@ mod tests {
         assert_eq!(registers.get_flag_n(), 0);
         assert_eq!(registers.get_flag_cy(), 0);
         assert_eq!(registers.pc(), 7);
+    }
+
+    #[test]
+    fn bit_7_a() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x80,           // LD A, 0x80
+            0b11_001_011,
+            0b01_111_111    // BIT 7, A
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.pc(), 4);
+    }
+
+    #[test]
+    fn bit_4_l() {
+        let rom = ROM::new(vec![
+            0b00_101_110,
+            0xEF,           // LD L, 0xEF
+            0b11_001_011,
+            0b01_100_101    // BIT 4, L
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.get_flag_z(), 1);
+        assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.pc(), 4);
     }
 
 }
