@@ -1337,28 +1337,56 @@ impl CPU{
     /// 11 001 011
     /// 11 bbb rrr
     pub fn set_b_r(&mut self, ext_opcode: u8, pc: u16){
-        unimplemented!();
+        let register = RegisterR::new(ext_opcode & 0b111);
+        let value = self.registers.read_r(register);
+        let bit = (ext_opcode >> 3) & 0b111;
+        debug!("{:#06X}: {:#04X} | SET  {:?}, {:?}({:#010b})", pc, ext_opcode, bit, register, value);
+
+        let result = bit_op::set_bit(value, bit);
+        self.registers.write_r(register, result);
+        self.registers.inc_pc(2);
     }
 
     /// SET     b, (HL)
     /// 11 001 011
     /// 11 bbb 110
     pub fn set_b_mem_hl(&mut self, ext_opcode: u8, pc: u16){
-        unimplemented!();
+        let address = self.registers.hl();
+        let value = self.read_memory(address);
+        let bit = (ext_opcode >> 3) & 0b111;
+        debug!("{:#06X}: {:#04X} | SET  {:?}, [{:#06x}]({:#010b})", pc, ext_opcode, bit, address, value);
+
+        let result = bit_op::set_bit(value, bit);
+        self.write_memory(address, result);
+        self.registers.inc_pc(2);
     }
 
     /// RES     b, r
     /// 11 001 011
     /// 10 bbb rrr
     pub fn res_b_r(&mut self, ext_opcode: u8, pc: u16){
-        unimplemented!();
+        let register = RegisterR::new(ext_opcode & 0b111);
+        let value = self.registers.read_r(register);
+        let bit = (ext_opcode >> 3) & 0b111;
+        debug!("{:#06X}: {:#04X} | RES  {:?}, {:?}({:#010b})", pc, ext_opcode, bit, register, value);
+
+        let result = bit_op::clear_bit(value, bit);
+        self.registers.write_r(register, result);
+        self.registers.inc_pc(2);
     }
 
     /// RES     b, (HL)
     /// 11 001 011
     /// 10 bbb 110
     pub fn res_b_mem_hl(&mut self, ext_opcode: u8, pc: u16){
-        unimplemented!();
+        let address = self.registers.hl();
+        let value = self.read_memory(address);
+        let bit = (ext_opcode >> 3) & 0b111;
+        debug!("{:#06X}: {:#04X} | RES  {:?}, [{:#06x}]({:#010b})", pc, ext_opcode, bit, address, value);
+
+        let result = bit_op::clear_bit(value, bit);
+        self.write_memory(address, result);
+        self.registers.inc_pc(2);
     }
 
 // --------------- //
@@ -3479,6 +3507,120 @@ fn sra_a() {
         assert_eq!(registers.get_flag_z(), 0);
         assert_eq!(registers.get_flag_h(), 1);
         assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.pc(), 7);
+    }
+
+    #[test]
+    fn set_3_a() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x80,           // LD A, 0x80
+            0b11_001_011,
+            0b11_011_111    // SET 3, A
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0x88);
+        assert_eq!(registers.pc(), 4);
+    }
+
+    #[test]
+    fn set_4_l() {
+        let rom = ROM::new(vec![
+            0b00_101_110,
+            0x3B,           // LD L, 0x3B
+            0b11_001_011,
+            0b11_111_101    // SET 7, L
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.l(), 0xBB);
+        assert_eq!(registers.pc(), 4);
+    }
+
+    #[test]
+    fn set_0_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b00_110_110,
+            0x00,          // LD (HL), 0x00
+            0b11_001_011,
+            0b11_011_110   // SET 3, (HL)
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(memory.read().unwrap().read(0x8000), 0x08);
+        assert_eq!(registers.pc(), 7);
+    }
+
+    #[test]
+    fn res_7_a() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x80,           // LD A, 0x80
+            0b11_001_011,
+            0b10_111_111    // RES 7, A
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0x0);
+        assert_eq!(registers.pc(), 4);
+    }
+
+    #[test]
+    fn set_1_l() {
+        let rom = ROM::new(vec![
+            0b00_101_110,
+            0x3B,           // LD L, 0x39
+            0b11_001_011,
+            0b10_001_101    // RES 1, L
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.l(), 0x39);
+        assert_eq!(registers.pc(), 4);
+    }
+
+    #[test]
+    fn res_3_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b00_110_110,
+            0xFF,          // LD (HL), 0xFF
+            0b11_001_011,
+            0b10_011_110   // RES 3, (HL)
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(memory.read().unwrap().read(0x8000), 0xF7);
         assert_eq!(registers.pc(), 7);
     }
 
