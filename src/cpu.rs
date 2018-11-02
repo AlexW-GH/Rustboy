@@ -1398,7 +1398,6 @@ impl CPU{
     /// nnnnnnnn
     /// nnnnnnnn
     pub fn jp_nn(&mut self, opcode: u8, pc: u16){
-        let pc = self.registers.pc();
         let address = self.read_memory_following_u16(pc);
         debug!("{:#06X}: {:#04X} | JP   {:#06X}", pc, opcode, address);
         self.registers.set_pc(address);
@@ -1409,7 +1408,6 @@ impl CPU{
     /// nnnnnnnn
     /// nnnnnnnn
     pub fn jp_cc_nn(&mut self, opcode: u8, pc: u16){
-        let pc = self.registers.pc();
         let condition = Condition::new((opcode>>3) & 0b11);
         let address = self.read_memory_following_u16(pc);
         if self.registers.check_condition(condition) {
@@ -1425,7 +1423,6 @@ impl CPU{
     /// 00 011 000
     /// eeeeeeee
     pub fn jr_e(&mut self, opcode: u8, pc: u16){
-        let pc = self.registers.pc();
         let value = self.read_memory_following_u8(pc);
         debug!("{:#06X}: {:#04X} | JR   {:?}", pc, opcode, value as i8);
         let pc = Self::add_signed(pc, value);
@@ -1436,7 +1433,6 @@ impl CPU{
     /// 00 1cc 000
     /// eeeeeeee
     pub fn jr_cc_e(&mut self, opcode: u8, pc: u16){
-        let pc = self.registers.pc();
         let condition = Condition::new((opcode>>3) & 0b11);
         let value = self.read_memory_following_u8(pc);
         if self.registers.check_condition(condition) {
@@ -1452,7 +1448,10 @@ impl CPU{
     /// JP      (HL)
     /// 11 101 001
     pub fn jp_mem_hl(&mut self, opcode: u8, pc: u16){
-        unimplemented!();
+        let condition = Condition::new((opcode>>3) & 0b11);
+        let address = self.registers.hl();
+        debug!("{:#06X}: {:#04X} | JP   {:?}({:#06X})", pc, opcode, RegisterDD::HL, address);
+        self.registers.set_pc(address);
     }
 
 // ---------------------------- //
@@ -1470,7 +1469,7 @@ impl CPU{
         debug!("{:#06X}: {:#04X} | CALL {:#06x}", pc, opcode, address);
         {
             let mut memory = self.memory.write().unwrap();
-            memory.push_u16_stack(pc, sp);
+            memory.push_u16_stack(pc+3, sp);
         }
         sp = sp -2;
         pc = address;
@@ -1491,7 +1490,7 @@ impl CPU{
             let mut sp = self.registers.sp();
             {
                 let mut memory = self.memory.write().unwrap();
-                memory.push_u16_stack(pc, sp);
+                memory.push_u16_stack(pc+3, sp);
             }
             sp = sp -2;
             pc = address;
