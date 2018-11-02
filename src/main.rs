@@ -98,7 +98,8 @@ fn setup_logging(file_name: &str){
     let log_path = format!("logs/{}.log", file_name);
     CombinedLogger::init(
         vec![
-            WriteLogger::new(LevelFilter::Debug, Config::default(), File::create(log_path).unwrap()),
+            //WriteLogger::new(LevelFilter::Debug, Config::default(), File::create(log_path).unwrap()),
+            TestLogger::new(LevelFilter::Debug, Config::default()),
         ]
     ).unwrap();
 }
