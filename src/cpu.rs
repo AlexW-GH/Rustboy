@@ -3436,4 +3436,50 @@ fn sra_a() {
         assert_eq!(registers.pc(), 4);
     }
 
+    #[test]
+    fn bit_0_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b00_110_110,
+            0xFE,          // LD (HL), 0xFE
+            0b11_001_011,
+            0b01_000_110   // Bit 0, (HL)
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.get_flag_z(), 1);
+        assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.pc(), 7);
+    }
+
+    #[test]
+    fn bit_1_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b00_110_110,
+            0xFE,          // LD (HL), 0xFE
+            0b11_001_011,
+            0b01_001_110   // Bit 0, (HL)
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 1);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.pc(), 7);
+    }
+
 }
