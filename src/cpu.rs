@@ -1557,6 +1557,7 @@ mod tests {
         let interrupt = Arc::new(RwLock::new(InterruptController::new()));
         let mut cpu = CPU::new(interrupt, memory.clone(), false);
         cpu.registers.set_pc(0);
+        cpu.registers.set_f(0x0);
         (cpu, memory)
     }
 

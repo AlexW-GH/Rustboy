@@ -30,9 +30,9 @@ impl fmt::Debug for AF {
 }
 
 impl AF {
-    fn new() -> AF {
+    fn new(boot_sequence: bool) -> AF {
         AF {
-            both: 0
+            both: if boot_sequence {0} else {0x01b0}
         }
     }
 }
@@ -50,9 +50,9 @@ impl fmt::Debug for BC {
 }
 
 impl BC {
-    fn new() -> BC {
+    fn new(boot_sequence: bool) -> BC {
         BC {
-            both: 0
+            both: if boot_sequence {0} else {0x0013}
         }
     }
 }
@@ -70,9 +70,9 @@ impl fmt::Debug for DE {
 }
 
 impl DE {
-    fn new() -> DE {
+    fn new(boot_sequence: bool) -> DE {
         DE {
-            both: 0
+            both: if boot_sequence {0} else {0x00d8}
         }
     }
 }
@@ -90,9 +90,9 @@ impl fmt::Debug for HL {
 }
 
 impl HL {
-    fn new() -> HL {
+    fn new(boot_sequence: bool) -> HL {
         HL {
-            both: 0
+            both: if boot_sequence {0} else {0x014D}
         }
     }
 }
@@ -124,14 +124,13 @@ struct HLSingle {
 impl Registers {
 
     pub fn new(boot_sequence: bool) -> Registers{
-        let pc = if boot_sequence {0x0000} else {0x0100};
         Registers{
-            af: AF::new(),
-            bc: BC::new(),
-            de: DE::new(),
-            hl: HL::new(),
-            sp: 0xFFFE,
-            pc
+            af: AF::new(boot_sequence),
+            bc: BC::new(boot_sequence),
+            de: DE::new(boot_sequence),
+            hl: HL::new(boot_sequence),
+            sp: if boot_sequence {0x0000} else {0xFFFE},
+            pc: if boot_sequence {0x0000} else {0x0100}
         }
     }
 
@@ -809,25 +808,6 @@ mod tests {
     use registers::Registers;
 
     #[test]
-    fn everything_setup_after_initialization() {
-        let registers = Registers::new(false);
-        assert_eq!(registers.af(), 0);
-        assert_eq!(registers.bc(), 0);
-        assert_eq!(registers.de(), 0);
-        assert_eq!(registers.hl(), 0);
-        assert_eq!(registers.a(), 0);
-        assert_eq!(registers.b(), 0);
-        assert_eq!(registers.c(), 0);
-        assert_eq!(registers.d(), 0);
-        assert_eq!(registers.e(), 0);
-        assert_eq!(registers.f(), 0);
-        assert_eq!(registers.h(), 0);
-        assert_eq!(registers.l(), 0);
-        assert_eq!(registers.pc(), 0x100);
-        assert_eq!(registers.sp(), 0xFFFE);
-    }
-
-    #[test]
     fn everything_setup_after_initialization_with_boot_sequence() {
         let registers = Registers::new(true);
         assert_eq!(registers.af(), 0);
@@ -843,6 +823,25 @@ mod tests {
         assert_eq!(registers.h(), 0);
         assert_eq!(registers.l(), 0);
         assert_eq!(registers.pc(), 0x0);
+        assert_eq!(registers.sp(), 0xFFFE);
+    }
+
+    #[test]
+    fn everything_setup_after_initialization() {
+        let registers = Registers::new(false);
+        assert_eq!(registers.af(), 0x01B0);
+        assert_eq!(registers.bc(), 0x0013);
+        assert_eq!(registers.de(), 0x00D8);
+        assert_eq!(registers.hl(), 0x014D);
+        assert_eq!(registers.a(), 0x01);
+        assert_eq!(registers.b(), 0x00);
+        assert_eq!(registers.c(), 0x13);
+        assert_eq!(registers.d(), 0x00);
+        assert_eq!(registers.e(), 0xD8);
+        assert_eq!(registers.f(), 0xB0);
+        assert_eq!(registers.h(), 0x01);
+        assert_eq!(registers.l(), 0x4D);
+        assert_eq!(registers.pc(), 0x100);
         assert_eq!(registers.sp(), 0xFFFE);
     }
 
@@ -869,17 +868,17 @@ mod tests {
     fn set_a_singles_correct() {
         let mut registers = Registers::new(false);
         registers.set_a(0xAB);
-        assert_eq!(registers.af(), 0xAB00);
+        assert_eq!(registers.af(), 0xABB0);
         assert_eq!(registers.a(), 0xAB);
-        assert_eq!(registers.f(), 0x00);
+        assert_eq!(registers.f(), 0xB0);
     }
 
     #[test]
     fn set_f_singles_correct() {
         let mut registers = Registers::new(false);
         registers.set_f(0xCD);
-        assert_eq!(registers.af(), 0x00CD);
-        assert_eq!(registers.a(), 0x00);
+        assert_eq!(registers.af(), 0x01CD);
+        assert_eq!(registers.a(), 0x01);
         assert_eq!(registers.f(), 0xCD);
     }
 
@@ -906,9 +905,9 @@ mod tests {
     fn set_b_singles_correct() {
         let mut registers = Registers::new(false);
         registers.set_b(0xAB);
-        assert_eq!(registers.bc(), 0xAB00);
+        assert_eq!(registers.bc(), 0xAB13);
         assert_eq!(registers.b(), 0xAB);
-        assert_eq!(registers.c(), 0x00);
+        assert_eq!(registers.c(), 0x13);
     }
 
     #[test]
@@ -943,9 +942,9 @@ mod tests {
     fn set_d_singles_correct() {
         let mut registers = Registers::new(false);
         registers.set_d(0xAB);
-        assert_eq!(registers.de(), 0xAB00);
+        assert_eq!(registers.de(), 0xABD8);
         assert_eq!(registers.d(), 0xAB);
-        assert_eq!(registers.e(), 0x00);
+        assert_eq!(registers.e(), 0xD8);
     }
 
     #[test]
@@ -980,17 +979,17 @@ mod tests {
     fn set_h_singles_correct() {
         let mut registers = Registers::new(false);
         registers.set_h(0xAB);
-        assert_eq!(registers.hl(), 0xAB00);
+        assert_eq!(registers.hl(), 0xAB4D);
         assert_eq!(registers.h(), 0xAB);
-        assert_eq!(registers.l(), 0x00);
+        assert_eq!(registers.l(), 0x4D);
     }
 
     #[test]
     fn set_l_singles_correct() {
         let mut registers = Registers::new(false);
         registers.set_l(0xCD);
-        assert_eq!(registers.hl(), 0x00CD);
-        assert_eq!(registers.h(), 0x00);
+        assert_eq!(registers.hl(), 0x01CD);
+        assert_eq!(registers.h(), 0x01);
         assert_eq!(registers.l(), 0xCD);
     }
 

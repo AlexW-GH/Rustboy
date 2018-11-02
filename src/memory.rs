@@ -55,7 +55,7 @@ impl Memory {
         let boot = Self::read_boot_data(boot_sequence);
         let mut wram_1n = Vec::new();
         wram_1n.push([0; 0x1000]);
-        Memory {
+        let memory =Memory {
             rom,
             boot,
             vram: [0; 0x2000],
@@ -70,7 +70,45 @@ impl Memory {
             selected_rom_bank: 0,
             selected_wram_bank: 0,
             boot_sequence,
+        };
+        Self::init_memory(memory, boot_sequence)
+    }
+
+    fn init_memory(mut memory: Memory, boot_sequence: bool) -> Memory{
+        if !boot_sequence {
+            memory.write(0xFF05, 0x00);
+            memory.write(0xFF06, 0x00);
+            memory.write(0xFF07, 0x00);
+            memory.write(0xFF10, 0x80);
+            memory.write(0xFF11, 0xBF);
+            memory.write(0xFF12, 0xF3);
+            memory.write(0xFF14, 0xBF);
+            memory.write(0xFF16, 0x3F);
+            memory.write(0xFF17, 0x00);
+            memory.write(0xFF19, 0xBF);
+            memory.write(0xFF1A, 0x7F);
+            memory.write(0xFF1B, 0xFF);
+            memory.write(0xFF1C, 0x9F);
+            memory.write(0xFF1E, 0xBF);
+            memory.write(0xFF20, 0xFF);
+            memory.write(0xFF21, 0x00);
+            memory.write(0xFF22, 0x00);
+            memory.write(0xFF23, 0xBF);
+            memory.write(0xFF24, 0x77);
+            memory.write(0xFF25, 0xF3);
+            memory.write(0xFF26, 0xF1);
+            memory.write(0xFF40, 0x91);
+            memory.write(0xFF42, 0x00);
+            memory.write(0xFF43, 0x00);
+            memory.write(0xFF45, 0x00);
+            memory.write(0xFF47, 0xFC);
+            memory.write(0xFF48, 0xFF);
+            memory.write(0xFF49, 0xFF);
+            memory.write(0xFF4A, 0x00);
+            memory.write(0xFF4B, 0x00);
+            memory.write(0xFFFF, 0x00);
         }
+        memory
     }
 
     fn map_memory_area_mut(&mut self, address:u16) -> (&mut [u8], u16){
