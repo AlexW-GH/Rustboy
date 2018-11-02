@@ -39,6 +39,8 @@ impl CPU{
             0x08 => self.ld_mem_nn_sp(opcode, pc),
             0x09 => self.add_hl_ss(opcode, pc),
             0x0A => self.ld_a_mem_bc(opcode, pc),
+            0x0B => self.dec_ss(opcode, pc),
+            0x0C => self.inc_r(opcode, pc),
             0x0D => self.dec_r(opcode, pc),
             0x0E => self.ld_r_n(opcode, pc),
             0x0F => self.rrca(opcode, pc),
@@ -50,13 +52,13 @@ impl CPU{
             0x16 => self.ld_r_n(opcode, pc),
             0x17 => self.rla(opcode, pc),
             0x18 => self.jr_e(opcode, pc),
+            0x19 => self.add_hl_ss(opcode, pc),
             0x1A => self.ld_a_mem_de(opcode, pc),
             0x1B => self.dec_ss(opcode, pc),
             0x1C => self.inc_r(opcode, pc),
             0x1D => self.dec_r(opcode, pc),
             0x1E => self.ld_r_n(opcode, pc),
             0x1F => self.rra(opcode, pc),
-            0x0C => self.inc_r(opcode, pc),
             0x20 => self.jr_cc_e(opcode, pc),
             0x21 => self.ld_dd_nn(opcode, pc),
             0x22 => self.ld_mem_hli_a(opcode, pc),
@@ -67,16 +69,21 @@ impl CPU{
             0x28 => self.jr_cc_e(opcode, pc),
             0x29 => self.add_hl_ss(opcode, pc),
             0x2A => self.ld_a_mem_hli(opcode, pc),
+            0x2B => self.dec_ss(opcode, pc),
             0x2C => self.inc_r(opcode, pc),
             0x2D => self.dec_r(opcode, pc),
             0x2E => self.ld_r_n(opcode, pc),
+            0x2F => self.cpl(opcode, pc),
             0x30 => self.jr_cc_e(opcode, pc),
             0x31 => self.ld_dd_nn(opcode, pc),
             0x32 => self.ld_mem_hld_a(opcode, pc),
+            0x33 => self.inc_ss(opcode, pc),
             0x34 => self.inc_mem_hl(opcode, pc),
             0x35 => self.dec_mem_hl(opcode, pc),
             0x36 => self.ld_mem_hl_n(opcode, pc),
             0x38 => self.jr_cc_e(opcode, pc),
+            0x39 => self.add_hl_ss(opcode, pc),
+            0x3B => self.dec_ss(opcode, pc),
             0x3C => self.inc_r(opcode, pc),
             0x3E => self.ld_r_n(opcode, pc),
             0x3A => self.ld_a_mem_hld(opcode, pc),
@@ -168,43 +175,59 @@ impl CPU{
             0xB8 ... 0xBD => self.cp_r(opcode, pc),
             0xBE => self.cp_mem_hl(opcode, pc),
             0xBF => self.cp_r(opcode, pc),
+            0xC0 => self.ret_cc(opcode, pc),
             0xC1 => self.pop_qq(opcode, pc),
+            0xC2 => self.jp_cc_nn(opcode, pc),
             0xC3 => self.jp_nn(opcode, pc),
             0xC4 => self.call_cc_nn(opcode, pc),
             0xC5 => self.push_qq(opcode, pc),
             0xC6 => self.add_a_n(opcode, pc),
+            0xC7 => self.rst_t(opcode, pc),
             0xC8 => self.ret_cc(opcode, pc),
             0xC9 => self.ret(opcode, pc),
+            0xCA => self.jp_cc_nn(opcode, pc),
             0xCB => self.extended_operations(pc),
+            0xCC => self.call_cc_nn(opcode, pc),
             0xCD => self.call_nn(opcode, pc),
             0xCE => self.adc_a_n(opcode, pc),
+            0xCF => self.rst_t(opcode, pc),
             0xD0 => self.ret_cc(opcode, pc),
             0xD1 => self.pop_qq(opcode, pc),
+            0xD2 => self.jp_cc_nn(opcode, pc),
+            0xD4 => self.call_cc_nn(opcode, pc),
             0xD5 => self.push_qq(opcode, pc),
             0xD6 => self.sub_a_n(opcode, pc),
+            0xD7 => self.rst_t(opcode, pc),
             0xD8 => self.ret_cc(opcode, pc),
+            0xD9 => self.reti(opcode, pc),
+            0xDA => self.jp_cc_nn(opcode, pc),
             0xDC => self.call_cc_nn(opcode, pc),
             0xDE => self.sbc_a_n(opcode, pc),
+            0xDF => self.rst_t(opcode, pc),
             0xE0 => self.ld_mem_n_a(opcode, pc),
             0xE1 => self.pop_qq(opcode, pc),
             0xE2 => self.ld_mem_c_a(opcode, pc),
             0xE5 => self.push_qq(opcode, pc),
             0xE6 => self.and_n(opcode, pc),
+            0xE7 => self.rst_t(opcode, pc),
             0xE8 => self.add_sp_e(opcode, pc),
             0xE9 => self.jp_mem_hl(opcode, pc),
             0xEA => self.ld_mem_nn_a(opcode, pc),
             0xEE => self.xor_n(opcode, pc),
+            0xEF => self.rst_t(opcode, pc),
             0xF0 => self.ld_a_mem_n(opcode, pc),
             0xF1 => self.pop_qq(opcode, pc),
             0xF2 => self.ld_mem_n_a(opcode, pc),
             0xF3 => self.di(opcode, pc),
             0xF5 => self.push_qq(opcode, pc),
             0xF6 => self.or_n(opcode, pc),
+            0xF7 => self.rst_t(opcode, pc),
             0xF8 => self.ldhl_sp_e(opcode, pc),
             0xF9 => self.ld_sp_hl(opcode, pc),
             0xFA => self.ld_a_mem_nn(opcode, pc),
             0xFB => self.ei(opcode, pc),
             0xFE => self.cp_n(opcode, pc),
+            0xFF => self.rst_t(opcode, pc),
             _ => {
                 debug!("{:#06X}: {:#04X} | ({:#010b})", pc, opcode, opcode);
                 unimplemented!();
@@ -1024,7 +1047,7 @@ impl CPU{
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_add_u16(value, 1,
                                      Ignore, Ignore, Ignore, Ignore);
-        self.registers.write_ss(register, value+1);
+        self.registers.write_ss(register, value.wrapping_add(1));
         self.registers.inc_pc(1);
     }
 
@@ -1037,7 +1060,7 @@ impl CPU{
         use registers::FlagCalculationStatus::*;
         self.registers.set_flags_sub_u16(value, 1,
                                          Ignore, Ignore, Ignore, Ignore);
-        self.registers.write_ss(register, value-1);
+        self.registers.write_ss(register, value.wrapping_sub(1));
         self.registers.inc_pc(1);
     }
 
@@ -1586,7 +1609,16 @@ impl CPU{
     /// RET
     /// 11 001 001
     pub fn reti(&mut self, opcode: u8, pc: u16){
-        unimplemented!();
+        let mut sp = self.registers.sp();
+        let pc = {
+            let memory = self.memory.read().unwrap();
+            memory.pop_u16_stack(sp)
+        };
+        debug!("{:#06X}: {:#04X} | RETI [{:#06x}]", pc, opcode, pc);
+        sp = sp + 2;
+        self.registers.set_sp(sp);
+        self.registers.set_pc(pc);
+        self.interrupt.write().unwrap().master_enable = true;
     }
 
     /// RET     cc
@@ -1613,7 +1645,27 @@ impl CPU{
     /// RST     t
     /// 11 ttt 111
     pub fn rst_t(&mut self, opcode: u8, pc: u16){
-        unimplemented!();
+        let operand = (opcode >> 3) & 0b111;
+        let address = match operand {
+            0 => 0x0000,
+            1 => 0x0008,
+            2 => 0x0010,
+            3 => 0x0018,
+            4 => 0x0020,
+            5 => 0x0028,
+            6 => 0x0030,
+            7 => 0x0038,
+            _ => panic!("unsupported operand for RST: {}", operand)
+        };
+        let mut sp = self.registers.sp();
+        debug!("{:#06X}: {:#04X} | RST {:#06x}", pc, opcode, address);
+        {
+            let mut memory = self.memory.write().unwrap();
+            memory.push_u16_stack(pc+3, sp);
+        }
+        sp = sp -2;
+        self.registers.set_sp(sp);
+        self.registers.set_pc(address);
     }
 
 
@@ -1694,7 +1746,7 @@ impl CPU{
     }
 
     fn add_signed(a: u16, b: u8) -> u16 {
-        (a as i16 + (b as i8 as i16)) as u16
+        ((a as i16).wrapping_add(b as i8 as i16)) as u16
     }
 }
 

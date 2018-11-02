@@ -31,13 +31,13 @@ use std::fs::OpenOptions;
 
 fn main() {
     let (filename, boot) = retrieve_options();
-    setup_logging(&filename);
+    //setup_logging(&filename);
     let mut file = File::open(filename).expect("file not found");
     let rom = ROM::new(read_game(&mut file));
     let memory = Arc::new(RwLock::new(Memory::new(rom, boot)));
     let interrupt = Arc::new(RwLock::new(InterruptController::new()));
     let mut cpu = CPU::new(interrupt, memory.clone(), boot);
-    //handle_header(&memory);
+    handle_header(&memory.read().unwrap());
     let cpu_handle = thread::spawn(move || {
         loop{
             cpu.step();

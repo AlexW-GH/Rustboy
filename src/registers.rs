@@ -669,7 +669,7 @@ impl Registers {
                         }
                     },
                     FlagCalculationOperation::Sub => {
-                        if operand1 < operand2 + flag_cy {
+                        if operand1 < operand2.wrapping_add(flag_cy) {
                             bit_op::set_bit(flags, 4)
                         } else {
                             bit_op::clear_bit(flags, 4)
