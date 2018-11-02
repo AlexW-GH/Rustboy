@@ -1120,7 +1120,7 @@ impl CPU{
         let bit7 = (value >> 7) & 1;
         let cy = self.registers.get_flag_cy();
         let rotated = (value << 1) | bit7;
-        let flags = CPU::calc_flags_for_rotate(flags, bit7, rotated, calc_zero);
+        let flags = CPU::calc_flags_for_shift_and_rotate(flags, bit7, rotated, calc_zero);
 
         self.registers.set_f(flags);
         rotated
@@ -1131,7 +1131,7 @@ impl CPU{
         let bit7 = (value >> 7) & 1;
         let cy = self.registers.get_flag_cy();
         let rotated = (value << 1) | cy;
-        let flags = CPU::calc_flags_for_rotate(flags, bit7, rotated, calc_zero);
+        let flags = CPU::calc_flags_for_shift_and_rotate(flags, bit7, rotated, calc_zero);
 
         self.registers.set_f(flags);
         rotated
@@ -1142,7 +1142,7 @@ impl CPU{
         let bit0 = (value) & 1;
         let cy = self.registers.get_flag_cy();
         let rotated = (value >> 1) | (bit0 << 7);
-        let flags = CPU::calc_flags_for_rotate(flags, bit0, rotated, calc_zero);
+        let flags = CPU::calc_flags_for_shift_and_rotate(flags, bit0, rotated, calc_zero);
 
         self.registers.set_f(flags);
         rotated
@@ -1153,13 +1153,13 @@ impl CPU{
         let bit0 = value & 1;
         let cy = self.registers.get_flag_cy();
         let rotated = (value >> 1) | (cy << 7);
-        let flags = CPU::calc_flags_for_rotate(flags, bit0, rotated, calc_zero);
+        let flags = CPU::calc_flags_for_shift_and_rotate(flags, bit0, rotated, calc_zero);
 
         self.registers.set_f(flags);
         rotated
     }
 
-    fn calc_flags_for_rotate(mut flags: u8, bit_value: u8, calculated_result: u8, calc_zero: bool) -> u8 {
+    fn calc_flags_for_shift_and_rotate(mut flags: u8, bit_value: u8, calculated_result: u8, calc_zero: bool) -> u8 {
         flags = bit_op::change_bit_to(flags, 4, bit_value);
         flags = bit_op::clear_bit(flags, 5);
         flags = bit_op::clear_bit(flags, 6);
@@ -1179,42 +1179,92 @@ impl CPU{
     /// 11 001 011
     /// 00 100 rrr
     pub fn sla_r(&mut self, ext_opcode: u8, pc: u16){
-        unimplemented!();
+        let mut register = RegisterR::new(ext_opcode & 0b111);
+        let value = self.registers.read_r(register);
+        debug!("{:#06X}: {:#04X} | SLA   {:?}({:#010b})", pc, ext_opcode, register, value);
+        let bit7 = (value>>7) & 1;
+        let result = value << 1;
+        let flags = Self::calc_flags_for_shift_and_rotate(self.registers.f(), bit7, result, true);
+        self.registers.set_f(flags);
+        self.registers.write_r(register, result);
+        self.registers.inc_pc(2);
     }
 
     /// SLA     (HL)
     /// 11 001 011
     /// 00 100 110
     pub fn sla_mem_hl(&mut self, ext_opcode: u8, pc: u16){
-        unimplemented!();
+        let mut address = self.registers.hl();
+        let value = self.read_memory(address);
+        debug!("{:#06X}: {:#04X} | SLA   {:?}[{:#06x}]({:#010b})", pc, ext_opcode, RegisterDD::HL, address, value);
+        let bit7 = (value>>7) & 1;
+        let result = value << 1;
+        let flags = Self::calc_flags_for_shift_and_rotate(self.registers.f(), bit7, result, true);
+        self.registers.set_f(flags);
+        self.write_memory(address, result);
+        self.registers.inc_pc(2);
     }
 
     /// SRA     r
     /// 11 001 011
     /// 00 100 rrr
     pub fn sra_r(&mut self, ext_opcode: u8, pc: u16){
-        unimplemented!();
+        let mut register = RegisterR::new(ext_opcode & 0b111);
+        let value = self.registers.read_r(register);
+        debug!("{:#06X}: {:#04X} | SRA   {:?}({:#010b})", pc, ext_opcode, register, value);
+        let bit0 = value & 1;
+        let bit7 = (value >> 7) & 1;
+        let result = (value >> 1) | (bit7 << 7);
+        let flags = Self::calc_flags_for_shift_and_rotate(self.registers.f(), bit0, result, true);
+        self.registers.set_f(flags);
+        self.registers.write_r(register, result);
+        self.registers.inc_pc(2);
     }
 
     /// SRA     (HL)
     /// 11 001 011
     /// 00 100 110
     pub fn sra_mem_hl(&mut self, ext_opcode: u8, pc: u16){
-        unimplemented!();
+        let mut address = self.registers.hl();
+        let value = self.read_memory(address);
+        debug!("{:#06X}: {:#04X} | SRA   {:?}[{:#06x}]({:#010b})", pc, ext_opcode, RegisterDD::HL, address, value);
+        let bit0 = value & 1;
+        let bit7 = (value >> 7) & 1;
+        let result = (value >> 1) | (bit7 << 7);
+        let flags = Self::calc_flags_for_shift_and_rotate(self.registers.f(), bit0, result, true);
+        self.registers.set_f(flags);
+        self.write_memory(address, result);
+        self.registers.inc_pc(2);
     }
 
     /// SRL     r
     /// 11 001 011
     /// 00 111 rrr
     pub fn srl_r(&mut self, ext_opcode: u8, pc: u16){
-        unimplemented!();
+        let mut register = RegisterR::new(ext_opcode & 0b111);
+        let value = self.registers.read_r(register);
+        debug!("{:#06X}: {:#04X} | SRL   {:?}({:#010b})", pc, ext_opcode, register, value);
+        let bit0 = value & 1;
+        let result = value >> 1;
+        let flags = Self::calc_flags_for_shift_and_rotate(self.registers.f(), bit0, result, true);
+        self.registers.set_f(flags);
+        self.registers.write_r(register, result);
+        self.registers.inc_pc(2);
     }
 
     /// SRL     (HL)
     /// 11 001 011
     /// 00 111 110
     pub fn srl_mem_hl(&mut self, ext_opcode: u8, pc: u16){
-        unimplemented!();
+        let mut address = self.registers.hl();
+        let value = self.read_memory(address);
+        debug!("{:#06X}: {:#04X} | SRL   {:?}[{:#06x}]({:#010b})", pc, ext_opcode, RegisterDD::HL, address, value);
+        let bit0 = value & 1;
+        let result = value >> 1;
+        let flags = Self::calc_flags_for_shift_and_rotate(self.registers.f(), bit0, result, true);
+        self.registers.set_f(flags);
+        self.write_memory(address, result);
+        self.registers.inc_pc(2);
     }
 
     /// SWAP    r
@@ -3143,6 +3193,147 @@ mod tests {
         assert_eq!(registers.get_flag_h(), 0);
         assert_eq!(registers.get_flag_n(), 0);
         assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 7);
+    }
+
+    #[test]
+    fn sla_d() {
+        let rom = ROM::new(vec![
+            0b00_010_110,
+            0x80,           // LD D, 0x80
+            0b11_001_011,
+            0b00_100_010    // SLA D
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.d(), 0x00);
+        assert_eq!(registers.get_flag_z(), 1);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 1);
+        assert_eq!(registers.pc(), 4);
+    }
+
+    #[test]
+    fn sla_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b00_110_110,
+            0xFF,          // LD (HL), 0xFF
+            0b11_001_011,
+            0b00_100_110   // SLA (HL)
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(memory.read().unwrap().read(0x8000), 0xFE);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 1);
+        assert_eq!(registers.pc(), 7);
+    }
+
+    #[test]
+fn sra_a() {
+    let rom = ROM::new(vec![
+        0b00_111_110,
+        0x8A,           // LD A, 0x8A
+        0b11_001_011,
+        0b00_101_111    // SRA A
+
+    ]);
+    let (mut cpu, memory) = create_cpu(rom);
+    for i in 0..2{
+        cpu.step();
+    }
+    let registers = &cpu.registers;
+    assert_eq!(registers.a(), 0xC5);
+    assert_eq!(registers.get_flag_z(), 0);
+    assert_eq!(registers.get_flag_h(), 0);
+    assert_eq!(registers.get_flag_n(), 0);
+    assert_eq!(registers.get_flag_cy(), 0);
+    assert_eq!(registers.pc(), 4);
+}
+
+    #[test]
+    fn sra_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b00_110_110,
+            0x01,          // LD (HL), 0x01
+            0b11_001_011,
+            0b00_101_110   // SRA (HL)
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(memory.read().unwrap().read(0x8000), 0x00);
+        assert_eq!(registers.get_flag_z(), 1);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 1);
+        assert_eq!(registers.pc(), 7);
+    }
+
+    #[test]
+    fn srl_a() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x01,           // LD A, 0x01
+            0b11_001_011,
+            0b00_111_111    // SRL A
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0x00);
+        assert_eq!(registers.get_flag_z(), 1);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 1);
+        assert_eq!(registers.pc(), 4);
+    }
+
+    #[test]
+    fn srl_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b00_110_110,
+            0xFF,          // LD (HL), 0xFF
+            0b11_001_011,
+            0b00_111_110   // SRL (HL)
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(memory.read().unwrap().read(0x8000), 0x7F);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 1);
         assert_eq!(registers.pc(), 7);
     }
 
