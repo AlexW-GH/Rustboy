@@ -1271,14 +1271,26 @@ impl CPU{
     /// 11 001 011
     /// 00 110 rrr
     pub fn swap_r(&mut self, ext_opcode: u8, pc: u16){
-        unimplemented!();
+        let mut register = RegisterR::new(ext_opcode & 0b111);
+        let value = self.registers.read_r(register);
+        debug!("{:#06X}: {:#04X} | SWAP  {:?}({:#010b})", pc, ext_opcode, register, value);
+        let result = ((value & 0b111) << 4) | (value >> 4) & 0b1111;
+        self.registers.set_flags(if result == 0 {1} else {0}, 0, 0, 0);
+        self.registers.write_r(register, result);
+        self.registers.inc_pc(2);
     }
 
     /// SWAP    (HL)
     /// 11 001 011
     /// 00 110 110
     pub fn swap_mem_hl(&mut self, ext_opcode: u8, pc: u16){
-        unimplemented!();
+        let mut address = self.registers.hl();
+        let value = self.read_memory(address);
+        debug!("{:#06X}: {:#04X} | SWAP  {:?}[{:#06x}]({:#010b})", pc, ext_opcode, RegisterDD::HL, address, value);
+        let result = ((value & 0b111) << 4) | (value >> 4) & 0b1111;
+        self.registers.set_flags(if result == 0 {1} else {0}, 0, 0, 0);
+        self.write_memory(address, result);
+        self.registers.inc_pc(2);
     }
 
 // -------------- //
@@ -3334,6 +3346,53 @@ fn sra_a() {
         assert_eq!(registers.get_flag_h(), 0);
         assert_eq!(registers.get_flag_n(), 0);
         assert_eq!(registers.get_flag_cy(), 1);
+        assert_eq!(registers.pc(), 7);
+    }
+
+    #[test]
+    fn swap_a() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x00,           // LD A, 0x00
+            0b11_001_011,
+            0b00_110_111    // SWAP A
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0x00);
+        assert_eq!(registers.get_flag_z(), 1);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 4);
+    }
+
+    #[test]
+    fn swap_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b00_110_110,
+            0xF0,          // LD (HL), 0xF0
+            0b11_001_011,
+            0b00_110_110   // SWAP (HL)
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(memory.read().unwrap().read(0x8000), 0x0F);
+        assert_eq!(registers.get_flag_z(), 0);
+        assert_eq!(registers.get_flag_h(), 0);
+        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.get_flag_cy(), 0);
         assert_eq!(registers.pc(), 7);
     }
 
