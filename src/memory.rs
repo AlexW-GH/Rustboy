@@ -153,17 +153,9 @@ impl Memory {
         }
     }
 
-    pub fn push_u8_stack(&mut self, value: u8, sp: u16){
-        self.write(sp-1, value as u8 );
-    }
-
     pub fn push_u16_stack(&mut self, value: u16, sp: u16){
         self.write(sp-1, ((value>>8) & 0xFF) as u8 );
         self.write(sp-2, (value & 0xFF) as u8 );
-    }
-
-    pub fn pop_u8_stack(&self, sp: u16) -> u8{
-        self.read(sp)
     }
 
     pub fn pop_u16_stack(&self, sp: u16) -> u16{
