@@ -1650,19 +1650,32 @@ impl CPU{
     /// CPL
     /// 00 101 111
     pub fn cpl(&mut self, opcode: u8, pc: u16){
-        unimplemented!();
+        let register = RegisterR::A;
+        let value = self.registers.read_r(register);
+        debug!("{:#06X}: {:#04X} | CPL {:?}({:#010b})", pc, opcode, register, value);
+        let result = !value;
+        self.registers.write_r(register, result);
+        self.registers.inc_pc(1);
     }
 
     /// SCF
-    /// 00_110_111
+    /// 00 110 111
     pub fn scf(&mut self, opcode: u8, pc: u16){
-        unimplemented!();
+        let mut flags = self.registers.f();
+        debug!("{:#06X}: {:#04X} | SCF", pc, opcode);
+        flags = bit_op::set_bit(flags, 4);
+        self.registers.set_f(flags);
+        self.registers.inc_pc(1);
     }
 
     /// CCF
-    ///
+    /// 00 111 111
     pub fn ccf(&mut self, opcode: u8, pc: u16){
-        unimplemented!();
+        let mut flags = self.registers.f();
+        debug!("{:#06X}: {:#04X} | SCF", pc, opcode);
+        flags = bit_op::clear_bit(flags, 4);
+        self.registers.set_f(flags);
+        self.registers.inc_pc(1);
     }
 
     /// NOP
@@ -3804,7 +3817,6 @@ fn sra_a() {
             0x80,          // JP 0x8000
         ]);
         let (mut cpu, memory) = create_cpu(rom);
-        assert_eq!(cpu.interrupt.read().unwrap().master_enable, false);
         {
             let mut memory = memory.write().unwrap();
             memory.write(0x8000, 0b11_001_101);
@@ -4030,5 +4042,86 @@ fn sra_a() {
         assert_eq!(registers.sp(), 0xFFFC);
         assert_eq!(memory.read().unwrap().read(0xFFFD), 0x80);
         assert_eq!(memory.read().unwrap().read(0xFFFC), 0x01);
+    }
+
+    #[test]
+    fn cpl() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x35,           // LD A, 0x00
+            0b00_101_111    // CPL
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        run_steps(2, &mut cpu);
+        let registers = &cpu.registers;
+        assert_eq!(registers.a(), 0xCA);
+        assert_eq!(registers.pc(), 3);
+    }
+
+    #[test]
+    fn scf() {
+        let rom = ROM::new(vec![
+            0b00_111_111,   // CCF
+            0b00_110_111,   // SCF
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        run_steps(2, &mut cpu);
+        let registers = &cpu.registers;
+        assert_eq!(registers.get_flag_cy(), 1);
+        assert_eq!(registers.pc(), 2);
+    }
+
+    #[test]
+    fn ccf() {
+        let rom = ROM::new(vec![
+            0b00_110_111,   // SCF
+            0b00_111_111,   // CCF
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        run_steps(2, &mut cpu);
+        let registers = &cpu.registers;
+        assert_eq!(registers.get_flag_cy(), 0);
+        assert_eq!(registers.pc(), 2);
+    }
+
+    #[test]
+    fn nop() {
+        let rom = ROM::new(vec![
+            0b00_000_000,   // SCF
+            0b00_000_000,   // SCF
+            0b00_000_000,   // SCF
+            0b00_000_000,   // SCF
+            0b00_000_000,   // SCF
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        run_steps(5, &mut cpu);
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 5);
+    }
+
+    #[test]
+    fn di() {
+        let rom = ROM::new(vec![
+            0b11_111_011,  // EI
+            0b11_110_011,  // DI
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        run_steps(2, &mut cpu);
+        let registers = &cpu.registers;
+        assert_eq!(cpu.interrupt.read().unwrap().master_enable, false);
+        assert_eq!(registers.pc(), 2);
+    }
+
+    #[test]
+    fn ei() {
+        let rom = ROM::new(vec![
+            0b11_110_011,  // DI
+            0b11_111_011,  // EI
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        run_steps(2, &mut cpu);
+        let registers = &cpu.registers;
+        assert_eq!(cpu.interrupt.read().unwrap().master_enable, true);
+        assert_eq!(registers.pc(), 2);
     }
 }
