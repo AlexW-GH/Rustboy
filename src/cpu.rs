@@ -1,13 +1,17 @@
 use std::sync::{Arc, RwLock};
+use std::time::SystemTime;
+use std::thread::sleep;
 
+use chrono::Duration;
 use registers::Registers;
 
 use opcodes;
 
 use memory::Memory;
 use interrupt_controller::InterruptController;
+use std::time::Instant;
 
-
+const NANO_CYCLE_TIME: i64 = 952;
 
 pub struct CPU{
     registers: Registers,
@@ -20,10 +24,34 @@ impl CPU {
         CPU { registers: Registers::new(boot_sequence), interrupt, memory }
     }
 
-    pub fn step(&mut self) {
+    fn step (&mut self){
         let pc = self.registers.pc();
         let opcode = self.memory.read().unwrap().read(pc);
-        opcodes::execute(opcode, pc, &mut self.registers, &mut self.memory);
+        opcodes::execute(opcode, pc, &mut self.registers, &mut self.memory) as i64;
+    }
+
+    pub fn run(&mut self) {
+        let mut time = Instant::now();
+        let mut time_spent: i64 = 0;
+        let mut wait_cycles: i64 = 1;
+        loop{
+            while wait_cycles > 0 {
+                let nanos = time.elapsed().as_nanos() as i64;
+                time = Instant::now();
+                time_spent += nanos;
+                //println!("{}", time_spent);
+                while time_spent >= NANO_CYCLE_TIME {
+                    time_spent -= NANO_CYCLE_TIME;
+                    wait_cycles = wait_cycles - 1;
+                }
+                //println!("after wc: {}", wait_cycles);
+
+            }
+            let pc = self.registers.pc();
+            let opcode = self.memory.read().unwrap().read(pc);
+            //println!("op: {:#04x}", opcode);
+            wait_cycles += opcodes::execute(opcode, pc, &mut self.registers, &mut self.memory) as i64;
+        }
     }
 }
 
@@ -32,7 +60,6 @@ impl CPU {
 #[cfg(test)]
 mod tests {
     extern crate simplelog;
-
     use std::sync::{Arc, RwLock};
     use cpu::CPU;
     use rom::ROM;
@@ -518,9 +545,9 @@ mod tests {
         let (mut cpu, _) = create_cpu(rom);
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.hl(), 0xFFFA);
         assert_eq!(registers.pc(), 5);
@@ -557,9 +584,9 @@ mod tests {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x0);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 5);
     }
@@ -576,9 +603,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x3B);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 4);
     }
@@ -599,9 +626,9 @@ mod tests {
         run_steps(4, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x4E);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 8);
     }
@@ -623,9 +650,9 @@ mod tests {
         run_steps(5, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0xF1);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 9);
     }
@@ -646,9 +673,9 @@ mod tests {
         run_steps(4, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x1D);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 8);
     }
@@ -673,9 +700,9 @@ mod tests {
         run_steps(6, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x0);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 12);
     }
@@ -693,9 +720,9 @@ mod tests {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x0);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 1);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 5);
     }
@@ -712,9 +739,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x2F);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 1);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 4);
     }
@@ -735,9 +762,9 @@ mod tests {
         run_steps(4, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0xFE);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 1);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 8);
     }
@@ -759,9 +786,9 @@ mod tests {
         run_steps(5, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x10);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 1);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 9);
     }
@@ -782,9 +809,9 @@ mod tests {
         run_steps(4, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x00);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 1);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 8);
     }
@@ -809,9 +836,9 @@ mod tests {
         run_steps(6, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0xEB);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 1);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 12);
     }
@@ -829,9 +856,9 @@ mod tests {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x1A);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 5);
     }
@@ -848,9 +875,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x18);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 4);
     }
@@ -871,9 +898,9 @@ mod tests {
         run_steps(4, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x00);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 8);
     }
@@ -889,9 +916,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x5A);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 3);
     }
@@ -908,9 +935,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x5B);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 4);
     }
@@ -931,9 +958,9 @@ mod tests {
         run_steps(4, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x5A);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 8);
     }
@@ -949,9 +976,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x00);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 3);
     }
@@ -968,9 +995,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0xF0);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 4);
     }
@@ -991,9 +1018,9 @@ mod tests {
         run_steps(4, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x75);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 8);
     }
@@ -1011,9 +1038,9 @@ mod tests {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x3C);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 1);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 5);
     }
@@ -1030,9 +1057,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x3C);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 1);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 4);
     }
@@ -1053,9 +1080,9 @@ mod tests {
         run_steps(4, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x3C);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 1);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 8);
     }
@@ -1072,9 +1099,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x00);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), cy);
         assert_eq!(registers.pc(), 3);
     }
@@ -1094,9 +1121,9 @@ mod tests {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8000), 0x51);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), cy);
         assert_eq!(registers.pc(), 6);
     }
@@ -1113,9 +1140,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.l(), 0x00);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 1);
         assert_eq!(registers.flag_cy(), cy);
         assert_eq!(registers.pc(), 3);
     }
@@ -1135,9 +1162,9 @@ mod tests {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8000), 0xFF);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 1);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 1);
         assert_eq!(registers.flag_cy(), cy);
         assert_eq!(registers.pc(), 6);
     }
@@ -1158,8 +1185,8 @@ mod tests {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.hl(), 0x9028);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 7);
     }
@@ -1174,13 +1201,13 @@ mod tests {
 
         ]);
         let (mut cpu, _) = create_cpu(rom);
-        let z = cpu.registers.get_flag_z();
+        let z = cpu.registers.flag_z();
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.hl(), 0x1446);
-        assert_eq!(registers.get_flag_z(), z);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), z);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 4);
     }
@@ -1199,9 +1226,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.sp(), 0xFFFA);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 5);
     }
@@ -1216,16 +1243,16 @@ mod tests {
 
         ]);
         let (mut cpu, _) = create_cpu(rom);
-        let z = cpu.registers.get_flag_z();
-        let h = cpu.registers.get_flag_h();
-        let n = cpu.registers.get_flag_n();
+        let z = cpu.registers.flag_z();
+        let h = cpu.registers.flag_h();
+        let n = cpu.registers.flag_n();
         let cy = cpu.registers.flag_cy();
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.de(), 0x2360);
-        assert_eq!(registers.get_flag_z(), z);
-        assert_eq!(registers.get_flag_h(), h);
-        assert_eq!(registers.get_flag_n(), n);
+        assert_eq!(registers.flag_z(), z);
+        assert_eq!(registers.flag_h(), h);
+        assert_eq!(registers.flag_n(), n);
         assert_eq!(registers.flag_cy(), cy);
         assert_eq!(registers.pc(), 4);
     }
@@ -1240,16 +1267,16 @@ mod tests {
 
         ]);
         let (mut cpu, _) = create_cpu(rom);
-        let z = cpu.registers.get_flag_z();
-        let h = cpu.registers.get_flag_h();
-        let n = cpu.registers.get_flag_n();
+        let z = cpu.registers.flag_z();
+        let h = cpu.registers.flag_h();
+        let n = cpu.registers.flag_n();
         let cy = cpu.registers.flag_cy();
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.de(), 0x235E);
-        assert_eq!(registers.get_flag_z(), z);
-        assert_eq!(registers.get_flag_h(), h);
-        assert_eq!(registers.get_flag_n(), n);
+        assert_eq!(registers.flag_z(), z);
+        assert_eq!(registers.flag_h(), h);
+        assert_eq!(registers.flag_n(), n);
         assert_eq!(registers.flag_cy(), cy);
         assert_eq!(registers.pc(), 4);
     }
@@ -1266,9 +1293,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x0B);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 3);
     }
@@ -1289,9 +1316,9 @@ mod tests {
         run_steps(4, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x2B);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 7);
     }
@@ -1308,9 +1335,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x9D);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 3);
     }
@@ -1327,9 +1354,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x40);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 3);
     }
@@ -1347,9 +1374,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.b(), 0x0B);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 4);
     }
@@ -1370,9 +1397,9 @@ mod tests {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8000), 0);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 7);
     }
@@ -1390,9 +1417,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.l(), 0x00);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 4);
     }
@@ -1413,9 +1440,9 @@ mod tests {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8000), 0x22);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 7);
     }
@@ -1433,9 +1460,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.c(), 0x80);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 4);
     }
@@ -1456,9 +1483,9 @@ mod tests {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8000), 0);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 7);
     }
@@ -1476,9 +1503,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x00);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 4);
     }
@@ -1499,9 +1526,9 @@ mod tests {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8000), 0x45);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 7);
     }
@@ -1519,9 +1546,9 @@ mod tests {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.d(), 0x00);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 4);
     }
@@ -1542,9 +1569,9 @@ mod tests {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8000), 0xFE);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 7);
     }
@@ -1562,9 +1589,9 @@ fn sra_a() {
         run_steps(2, &mut cpu);
     let registers = &cpu.registers;
     assert_eq!(registers.a(), 0xC5);
-    assert_eq!(registers.get_flag_z(), 0);
-    assert_eq!(registers.get_flag_h(), 0);
-    assert_eq!(registers.get_flag_n(), 0);
+    assert_eq!(registers.flag_z(), 0);
+    assert_eq!(registers.flag_h(), 0);
+    assert_eq!(registers.flag_n(), 0);
     assert_eq!(registers.flag_cy(), 0);
     assert_eq!(registers.pc(), 4);
 }
@@ -1585,9 +1612,9 @@ fn sra_a() {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8000), 0x00);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 7);
     }
@@ -1605,9 +1632,9 @@ fn sra_a() {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x00);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 4);
     }
@@ -1628,9 +1655,9 @@ fn sra_a() {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8000), 0x7F);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 1);
         assert_eq!(registers.pc(), 7);
     }
@@ -1648,9 +1675,9 @@ fn sra_a() {
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(registers.a(), 0x00);
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 4);
     }
@@ -1671,9 +1698,9 @@ fn sra_a() {
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8000), 0x0F);
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 0);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 0);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.flag_cy(), 0);
         assert_eq!(registers.pc(), 7);
     }
@@ -1690,9 +1717,9 @@ fn sra_a() {
         let (mut cpu, _) = create_cpu(rom);
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.pc(), 4);
     }
 
@@ -1708,9 +1735,9 @@ fn sra_a() {
         let (mut cpu, _) = create_cpu(rom);
         run_steps(2, &mut cpu);
         let registers = &cpu.registers;
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.pc(), 4);
     }
 
@@ -1729,9 +1756,9 @@ fn sra_a() {
         let (mut cpu, _) = create_cpu(rom);
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
-        assert_eq!(registers.get_flag_z(), 1);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 1);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.pc(), 7);
     }
 
@@ -1750,9 +1777,9 @@ fn sra_a() {
         let (mut cpu, _) = create_cpu(rom);
         run_steps(3, &mut cpu);
         let registers = &cpu.registers;
-        assert_eq!(registers.get_flag_z(), 0);
-        assert_eq!(registers.get_flag_h(), 1);
-        assert_eq!(registers.get_flag_n(), 0);
+        assert_eq!(registers.flag_z(), 0);
+        assert_eq!(registers.flag_h(), 1);
+        assert_eq!(registers.flag_n(), 0);
         assert_eq!(registers.pc(), 7);
     }
 

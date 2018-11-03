@@ -7,3 +7,8 @@ authors = ["Alex <mithnar333@googlemail.com>"]
 clap = "2.32"
 log = "0.4"
 simplelog = { git = "https://github.com/AlexW-GH/simplelog.rs" }
+chrono = "0.4"
+piston_window = "0.82"
+
+[profile.release]
+lto = true

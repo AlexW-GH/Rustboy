@@ -1,9 +1,14 @@
+#![feature(duration_as_u128)]
+
 #[macro_use]
 extern crate log;
 extern crate simplelog;
 extern crate clap;
+extern crate chrono;
+extern crate piston_window;
 
 mod cpu;
+mod renderer;
 mod registers;
 mod rom;
 mod memory;
@@ -22,7 +27,11 @@ use cpu::CPU;
 use interrupt_controller::InterruptController;
 
 use clap::{Arg, App};
-
+use piston_window::*;
+use renderer::Renderer;
+use simplelog::TestLogger;
+use simplelog::LevelFilter;
+use simplelog::Config;
 
 fn main() {
     let (filename, boot) = retrieve_options();
@@ -34,10 +43,11 @@ fn main() {
     let mut cpu = CPU::new(interrupt, memory.clone(), boot);
     handle_header(&memory.read().unwrap());
     let cpu_handle = thread::spawn(move || {
-        loop{
-            cpu.step();
-        }
+        cpu.run();
     });
+    let window = create_window();
+    let mut renderer = Renderer::new(window, memory.clone());
+    //renderer.run();
     cpu_handle.join().unwrap_or(panic!("the disco"));
 }
 
@@ -91,5 +101,13 @@ fn setup_logging(file_name: &str){
     let file_name = file_name.split("/").collect::<Vec<_>>().last().unwrap().to_string();
     let log_path = format!("logs/{}.log", file_name);
     //WriteLogger::init(LevelFilter::Debug, Config::default(), File::create(log_path).unwrap()).unwrap();
-    //TestLogger::init(LevelFilter::Debug, Config::default())
+    //TestLogger::init(LevelFilter::Debug, Config::default());
+}
+
+fn create_window() -> PistonWindow{
+    WindowSettings::new("Rustboy", (renderer::HOR_PIXELS*2, renderer::VER_PIXELS*2))
+        .exit_on_esc(true)
+        .resizable(false)
+        .build()
+        .unwrap_or_else(|e| { panic!("Failed to build PistonWindow: {}", e) })
 }

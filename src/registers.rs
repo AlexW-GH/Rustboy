@@ -331,6 +331,15 @@ impl Registers {
     pub fn flag_cy(&self) -> u8{
         (self.f() >> 4) & 1
     }
+    pub fn flag_h(&self) -> u8{
+        (self.f() >> 5) & 1
+    }
+    pub fn flag_n(&self) -> u8{
+        (self.f() >> 6) & 1
+    }
+    pub fn flag_z(&self) -> u8{
+        (self.f() >> 7) & 1
+    }
 
     pub fn set_flags(&mut self, z: u8, n: u8, h: u8, cy: u8){
         let mut flags = self.f();
