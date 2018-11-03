@@ -2,7 +2,6 @@ use std::fs::File;
 use std::io::Read;
 
 use rom::ROM;
-use registers::Registers;
 
 const BOOT_OFFSET: u16 = 0x0000;
 const BOOT_LAST: u16 = 0x00FF;

@@ -158,15 +158,6 @@ impl Registers {
         }
     }
 
-    pub fn read_dd(&self, target: RegisterDD) -> u16 {
-        match target {
-            RegisterDD::BC => self.bc(),
-            RegisterDD::DE => self.de(),
-            RegisterDD::HL => self.hl(),
-            RegisterDD::SP => self.sp(),
-        }
-    }
-
     pub fn write_dd(&mut self, target: RegisterDD, value: u16) {
         match target {
             RegisterDD::BC => self.set_bc(value),
@@ -337,19 +328,7 @@ impl Registers {
         }
     }
 
-    pub fn get_flag_z(&self) -> u8{
-        (self.f() >> 7) & 1
-    }
-
-    pub fn get_flag_n(&self) -> u8{
-        (self.f() >> 6) & 1
-    }
-
-    pub fn get_flag_h(&self) -> u8{
-        (self.f() >> 5) & 1
-    }
-
-    pub fn get_flag_cy(&self) -> u8{
+    pub fn flag_cy(&self) -> u8{
         (self.f() >> 4) & 1
     }
 

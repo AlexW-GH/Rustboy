@@ -3,14 +3,13 @@ extern crate log;
 extern crate simplelog;
 extern crate clap;
 
-use simplelog::*;
-
 mod cpu;
 mod registers;
 mod rom;
 mod memory;
 mod util;
 mod interrupt_controller;
+mod opcodes;
 
 use std::sync::{Arc, RwLock};
 use std::thread;
@@ -40,7 +39,6 @@ fn main() {
         }
     });
     cpu_handle.join().unwrap_or(panic!("the disco"));
-
 }
 
 fn handle_header(memory: &Memory){

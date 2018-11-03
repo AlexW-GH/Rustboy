@@ -1,7 +1,3 @@
-use std::sync::Arc;
-use std::sync::RwLock;
-use memory::Memory;
-
 pub struct InterruptController{
     pub master_enable: bool,
     pub interrupt_enable_flags: u8,
