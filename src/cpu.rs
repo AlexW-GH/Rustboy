@@ -185,7 +185,7 @@ impl CPU{
             0xEF => self.rst_t(opcode, pc),
             0xF0 => self.ld_a_mem_n(opcode, pc),
             0xF1 => self.pop_qq(opcode, pc),
-            0xF2 => self.ld_mem_n_a(opcode, pc),
+            0xF2 => self.ld_a_mem_c(opcode, pc),
             0xF3 => self.di(opcode, pc),
             0xF4 => panic!("0xF4 is unsupported"),
             0xF5 => self.push_qq(opcode, pc),
@@ -1490,7 +1490,7 @@ impl CPU{
         let value = self.read_memory_following_u8(pc);
         debug!("{:#06X}: {:#04X} | JR   {:?}", pc, opcode, value as i8);
         let pc = Self::add_signed(pc, value);
-        self.registers.set_pc(pc+2);
+        self.registers.set_pc(pc.wrapping_add(2));
     }
 
     /// JR      cc, e
@@ -1502,7 +1502,7 @@ impl CPU{
         if self.registers.check_condition(condition) {
             debug!("{:#06X}: {:#04X} | JR   {:?}, {:?} ||| (jp)", pc, opcode, condition, value as i8);
             let pc = Self::add_signed(pc, value);
-            self.registers.set_pc(pc+2);
+            self.registers.set_pc(pc.wrapping_add(2));
         } else {
             debug!("{:#06X}: {:#04X} | JR   {:?}, {:?} ||| (skip)", pc, opcode, condition, value as i8);
             self.registers.inc_pc(2);
@@ -1512,7 +1512,6 @@ impl CPU{
     /// JP      (HL)
     /// 11 101 001
     pub fn jp_mem_hl(&mut self, opcode: u8, pc: u16){
-        let condition = Condition::new((opcode>>3) & 0b11);
         let address = self.registers.hl();
         debug!("{:#06X}: {:#04X} | JP   {:?}({:#06X})", pc, opcode, RegisterDD::HL, address);
         self.registers.set_pc(address);
@@ -1532,7 +1531,7 @@ impl CPU{
         debug!("{:#06X}: {:#04X} | CALL {:#06x}", pc, opcode, address);
         {
             let mut memory = self.memory.write().unwrap();
-            memory.push_u16_stack(pc+3, sp);
+            memory.push_u16_stack(pc.wrapping_add(3), sp);
         }
         sp = sp -2;
         self.registers.set_sp(sp);
@@ -1551,7 +1550,7 @@ impl CPU{
             let mut sp = self.registers.sp();
             {
                 let mut memory = self.memory.write().unwrap();
-                memory.push_u16_stack(pc+3, sp);
+                memory.push_u16_stack(pc.wrapping_add(3), sp);
             }
             sp = sp -2;
             self.registers.set_sp(sp);
@@ -1603,7 +1602,7 @@ impl CPU{
                 memory.pop_u16_stack(sp)
             };
             debug!("{:#06X}: {:#04X} | RET {:?}, [{:#06x}] ||| (ret)", pc, opcode, condition, pc);
-            sp = sp + 2;
+            sp = sp.wrapping_add(2);
             self.registers.set_sp(sp);
             self.registers.set_pc(pc);
         } else {
@@ -1632,9 +1631,9 @@ impl CPU{
         debug!("{:#06X}: {:#04X} | RST {:#06x}", pc, opcode, address);
         {
             let mut memory = self.memory.write().unwrap();
-            memory.push_u16_stack(pc+3, sp);
+            memory.push_u16_stack(pc.wrapping_add(3), sp);
         }
-        sp = sp -2;
+        sp = sp.wrapping_sub(2);
         self.registers.set_sp(sp);
         self.registers.set_pc(address);
     }
@@ -1672,10 +1671,11 @@ impl CPU{
     /// 00 000 000
     pub fn nop(&mut self, opcode: u8, pc: u16){
         debug!("{:#06X}: {:#04X} | NOP", pc, opcode);
+        println!("?!?!?");
         self.registers.inc_pc(1);
     }
 
-    /// HALT
+    /// HALTsd
     /// 01 110 110
     pub fn halt(&mut self, opcode: u8, pc: u16){
         unimplemented!();
@@ -1843,7 +1843,7 @@ mod tests {
             0b00_100_001,
             0xC5,
             0x8A,         // LD HL, 0x8AC5
-            0b01_100_111, // LD (HL), A
+            0b01_110_111  // LD (HL), A
         ]);
         let (mut cpu, memory) = create_cpu(rom);
         for i in 0..3{
@@ -3728,7 +3728,6 @@ fn sra_a() {
             0xFF,          // LD (HL), 0xFF
             0b11_001_011,
             0b10_011_110   // RES 3, (HL)
-
         ]);
         let (mut cpu, memory) = create_cpu(rom);
         for i in 0..3{
@@ -3737,6 +3736,189 @@ fn sra_a() {
         let registers = &cpu.registers;
         assert_eq!(memory.read().unwrap().read(0x8000), 0xF7);
         assert_eq!(registers.pc(), 7);
+    }
+
+    #[test]
+    fn jp_0x8000() {
+        let rom = ROM::new(vec![
+            0b11_000_011,
+            0x00,
+            0x80,          // JP 0x8000
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..1{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 0x8000);
+    }
+
+    #[test]
+    fn jp_nz_0x8000() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x00,           // LD A, 0x00
+            0b11_001_011,
+            0b00_110_111,    // SWAP A
+            0b11_000_010,
+            0x00,
+            0x80,          // JP NZ 0x8000
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 7);
+    }
+
+    #[test]
+    fn jp_z_0x8000() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x00,           // LD A, 0x00
+            0b11_001_011,
+            0b00_110_111,    // SWAP A
+            0b11_001_010,
+            0x00,
+            0x80,          // JP NZ 0x8000
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 0x8000);
+    }
+
+    #[test]
+    fn jp_c_0x8000() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x00,           // LD A, 0x00
+            0b11_001_011,
+            0b00_110_111,    // SWAP A
+            0b11_011_010,
+            0x00,
+            0x80,          // JP NZ 0x8000
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 7);
+    }
+
+    #[test]
+    fn jp_nc_0x8000() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x00,           // LD A, 0x00
+            0b11_001_011,
+            0b00_110_111,    // SWAP A
+            0b11_010_010,
+            0x00,
+            0x80,          // JP NZ 0x8000
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 0x8000);
+    }
+
+    #[test]
+    fn jr_neg_5() {
+        let rom = ROM::new(vec![
+            0x00,           // NOP
+            0x00,           // NOP
+            0x00,           // NOP
+            0b00_011_000,
+            -5i8 as u8,              // JP -5
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..4{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 0);
+    }
+
+    #[test]
+    fn jr_pos_5() {
+        let rom = ROM::new(vec![
+            0b00_011_000,
+            5,              // JP 5
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..1{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 7);
+    }
+
+    #[test]
+    fn jr_z_neg_5() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x00,           // LD A, 0x00
+            0b11_001_011,
+            0b00_110_111,   // SWAP A
+            0b00_101_000,
+            -5i8 as u8,     // JR Z, -5
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 1);
+    }
+
+    #[test]
+    fn jr_nc_pos_5() {
+        let rom = ROM::new(vec![
+            0b00_111_110,
+            0x00,           // LD A, 0x00
+            0b11_001_011,
+            0b00_110_111,   // SWAP A
+            0b00_110_000,
+            5,              // JR NC, 5
+
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..3{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 11);
+    }
+
+    #[test]
+    fn jp_mem_hl() {
+        let rom = ROM::new(vec![
+            0b00_100_001,
+            0x00,
+            0x80,          // LD HL, 0x8000
+            0b11_101_001   // JP (HL)
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        for i in 0..2{
+            cpu.step();
+        }
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 0x8000);
     }
 
 }

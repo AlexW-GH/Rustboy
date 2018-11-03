@@ -325,7 +325,7 @@ impl Registers {
     }
 
     pub fn inc_pc(&mut self, value: u16){
-        self.pc = self.pc+value;
+        self.pc = self.pc.wrapping_add(value);
     }
 
     pub fn check_condition(&self, condition: Condition) -> bool{
