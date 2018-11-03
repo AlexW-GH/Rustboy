@@ -1629,7 +1629,7 @@ impl CPU{
         debug!("{:#06X}: {:#04X} | RST {:#06x}", pc, opcode, address);
         {
             let mut memory = self.memory.write().unwrap();
-            memory.push_u16_stack(pc.wrapping_add(3), sp);
+            memory.push_u16_stack(pc.wrapping_add(1), sp);
         }
         sp = sp.wrapping_sub(2);
         self.registers.set_sp(sp);
@@ -3870,5 +3870,165 @@ fn sra_a() {
         let registers = &cpu.registers;
         assert_eq!(registers.pc(), 0x8003);
         assert_eq!(registers.sp(), 0xFFFE);
+    }
+
+    #[test]
+    fn rst_0() {
+        let rom = ROM::new(vec![
+            0b11_000_011,
+            0x00,
+            0x80,          // JP 0x8000
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        {
+            let mut memory = memory.write().unwrap();
+            memory.write(0x8000, 0b11_000_111); // RST 0
+        }
+        run_steps(2, &mut cpu);
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 0x0000);
+        assert_eq!(registers.sp(), 0xFFFC);
+        assert_eq!(memory.read().unwrap().read(0xFFFD), 0x80);
+        assert_eq!(memory.read().unwrap().read(0xFFFC), 0x01);
+    }
+
+    #[test]
+    fn rst_1() {
+        let rom = ROM::new(vec![
+            0b11_000_011,
+            0x00,
+            0x80,          // JP 0x8000
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        {
+            let mut memory = memory.write().unwrap();
+            memory.write(0x8000, 0b11_001_111); // RST 1
+        }
+        run_steps(2, &mut cpu);
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 0x0008);
+        assert_eq!(registers.sp(), 0xFFFC);
+        assert_eq!(memory.read().unwrap().read(0xFFFD), 0x80);
+        assert_eq!(memory.read().unwrap().read(0xFFFC), 0x01);
+    }
+
+    #[test]
+    fn rst_2() {
+        let rom = ROM::new(vec![
+            0b11_000_011,
+            0x00,
+            0x80,          // JP 0x8000
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        {
+            let mut memory = memory.write().unwrap();
+            memory.write(0x8000, 0b11_010_111); // RST 2
+        }
+        run_steps(2, &mut cpu);
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 0x0010);
+        assert_eq!(registers.sp(), 0xFFFC);
+        assert_eq!(memory.read().unwrap().read(0xFFFD), 0x80);
+        assert_eq!(memory.read().unwrap().read(0xFFFC), 0x01);
+    }
+
+    #[test]
+    fn rst_3() {
+        let rom = ROM::new(vec![
+            0b11_000_011,
+            0x00,
+            0x80,          // JP 0x8000
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        {
+            let mut memory = memory.write().unwrap();
+            memory.write(0x8000, 0b11_011_111); // RST 3
+        }
+        run_steps(2, &mut cpu);
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 0x0018);
+        assert_eq!(registers.sp(), 0xFFFC);
+        assert_eq!(memory.read().unwrap().read(0xFFFD), 0x80);
+        assert_eq!(memory.read().unwrap().read(0xFFFC), 0x01);
+    }
+
+    #[test]
+    fn rst_4() {
+        let rom = ROM::new(vec![
+            0b11_000_011,
+            0x00,
+            0x80,          // JP 0x8000
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        {
+            let mut memory = memory.write().unwrap();
+            memory.write(0x8000, 0b11_100_111); // RST 4
+        }
+        run_steps(2, &mut cpu);
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 0x0020);
+        assert_eq!(registers.sp(), 0xFFFC);
+        assert_eq!(memory.read().unwrap().read(0xFFFD), 0x80);
+        assert_eq!(memory.read().unwrap().read(0xFFFC), 0x01);
+    }
+
+    #[test]
+    fn rst_5() {
+        let rom = ROM::new(vec![
+            0b11_000_011,
+            0x00,
+            0x80,          // JP 0x8000
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        {
+            let mut memory = memory.write().unwrap();
+            memory.write(0x8000, 0b11_101_111); // RST 5
+        }
+        run_steps(2, &mut cpu);
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 0x0028);
+        assert_eq!(registers.sp(), 0xFFFC);
+        assert_eq!(memory.read().unwrap().read(0xFFFD), 0x80);
+        assert_eq!(memory.read().unwrap().read(0xFFFC), 0x01);
+    }
+
+    #[test]
+    fn rst_6() {
+        let rom = ROM::new(vec![
+            0b11_000_011,
+            0x00,
+            0x80,          // JP 0x8000
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        {
+            let mut memory = memory.write().unwrap();
+            memory.write(0x8000, 0b11_110_111); // RST 6
+        }
+        run_steps(2, &mut cpu);
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 0x0030);
+        assert_eq!(registers.sp(), 0xFFFC);
+        assert_eq!(memory.read().unwrap().read(0xFFFD), 0x80);
+        assert_eq!(memory.read().unwrap().read(0xFFFC), 0x01);
+    }
+
+    #[test]
+    fn rst_7() {
+        let rom = ROM::new(vec![
+            0b11_000_011,
+            0x00,
+            0x80,          // JP 0x8000
+        ]);
+        let (mut cpu, memory) = create_cpu(rom);
+        {
+            let mut memory = memory.write().unwrap();
+            memory.write(0x8000, 0b11_111_111); // RST 7
+        }
+        run_steps(2, &mut cpu);
+        let registers = &cpu.registers;
+        assert_eq!(registers.pc(), 0x0038);
+        assert_eq!(registers.sp(), 0xFFFC);
+        assert_eq!(memory.read().unwrap().read(0xFFFD), 0x80);
+        assert_eq!(memory.read().unwrap().read(0xFFFC), 0x01);
     }
 }
