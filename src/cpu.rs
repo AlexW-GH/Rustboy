@@ -10,23 +10,25 @@ use opcodes;
 use memory::Memory;
 use interrupt_controller::InterruptController;
 use std::time::Instant;
+use std::rc::Rc;
+use std::cell::RefCell;
 
-const NANO_CYCLE_TIME: i64 = 952;
+const NANO_CYCLE_TIME: i64 = 238;
 
 pub struct CPU{
     registers: Registers,
-    interrupt: Arc<RwLock<InterruptController>>,
-    memory: Arc<RwLock<Memory>>
+    interrupt: InterruptController,
+    memory: Rc<RefCell<Memory>>
 }
 
 impl CPU {
-    pub fn new(interrupt: Arc<RwLock<InterruptController>>, memory: Arc<RwLock<Memory>>, boot_sequence: bool) -> CPU {
+    pub fn new(interrupt: InterruptController, memory: Rc<RefCell<Memory>>, boot_sequence: bool) -> CPU {
         CPU { registers: Registers::new(boot_sequence), interrupt, memory }
     }
 
     fn step (&mut self){
         let pc = self.registers.pc();
-        let opcode = self.memory.read().unwrap().read(pc);
+        let opcode = self.memory.borrow().read(pc);
         opcodes::execute(opcode, pc, &mut self.registers, &mut self.memory) as i64;
     }
 
@@ -39,16 +41,16 @@ impl CPU {
                 let nanos = time.elapsed().as_nanos() as i64;
                 time = Instant::now();
                 time_spent += nanos;
-                //println!("{}", time_spent);
+                println!("{}", time_spent);
                 while time_spent >= NANO_CYCLE_TIME {
                     time_spent -= NANO_CYCLE_TIME;
                     wait_cycles = wait_cycles - 1;
                 }
-                //println!("after wc: {}", wait_cycles);
+                println!("after wc: {}", wait_cycles);
 
             }
             let pc = self.registers.pc();
-            let opcode = self.memory.read().unwrap().read(pc);
+            let opcode = self.memory.borrow().read(pc);
             //println!("op: {:#04x}", opcode);
             wait_cycles += opcodes::execute(opcode, pc, &mut self.registers, &mut self.memory) as i64;
         }

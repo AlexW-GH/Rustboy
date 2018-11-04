@@ -6,6 +6,7 @@ extern crate simplelog;
 extern crate clap;
 extern crate chrono;
 extern crate piston_window;
+extern crate core;
 
 mod cpu;
 mod renderer;
@@ -15,6 +16,9 @@ mod memory;
 mod util;
 mod interrupt_controller;
 mod opcodes;
+mod ppu;
+mod gameboy;
+mod lcd;
 
 use std::sync::{Arc, RwLock};
 use std::thread;
@@ -32,45 +36,24 @@ use renderer::Renderer;
 use simplelog::TestLogger;
 use simplelog::LevelFilter;
 use simplelog::Config;
+use gameboy::Gameboy;
+use lcd::LCD;
 
 fn main() {
     let (filename, boot) = retrieve_options();
     setup_logging(&filename);
     let mut file = File::open(filename).expect("file not found");
     let rom = ROM::new(read_game(&mut file));
-    let memory = Arc::new(RwLock::new(Memory::new(rom, boot)));
-    let interrupt = Arc::new(RwLock::new(InterruptController::new()));
-    let mut cpu = CPU::new(interrupt, memory.clone(), boot);
-    handle_header(&memory.read().unwrap());
+    let lcd = Arc::new(RwLock::new(LCD::new()));
+    let cpu_lcd = lcd.clone();
     let cpu_handle = thread::spawn(move || {
-        cpu.run();
+        let mut gameboy = Gameboy::new(cpu_lcd, rom, boot);
+        gameboy.run();
     });
     let window = create_window();
-    let mut renderer = Renderer::new(window, memory.clone());
+    let mut renderer = Renderer::new(window, lcd);
     //renderer.run();
     cpu_handle.join().unwrap_or(panic!("the disco"));
-}
-
-fn handle_header(memory: &Memory){
-    let title = extract_title(memory);
-    println!("Game Title: {:?}", title);
-    println!("Licensee Code: {:#06X}", memory.following_u16(0x143));
-    println!("Cardridge Type: {:#04X}", memory.read(0x147));
-    println!("Rom Size: {:#04X}", memory.read(0x148));
-    println!("external Ram Size: {:#04X}", memory.read(0x149));
-    println!("Destination Code: {:#04X}", memory.read(0x14A));
-    println!("Old Licensee Code: {:#04X}", memory.read(0x14B));
-    println!("Mask ROM Version number: {:#04X}", memory.read(0x14C));
-}
-
-fn extract_title(memory: &Memory) -> String {
-    let mut title = Vec::new();
-    for i in 0x134..0x144 {
-        let char = memory.read(i);
-        if char == 0 { break }
-        title.push(char)
-    }
-    String::from_utf8(title).unwrap_or("".to_string())
 }
 
 fn read_game(file: &mut File) -> Vec<u8>{
