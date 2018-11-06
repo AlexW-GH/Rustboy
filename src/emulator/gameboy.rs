@@ -1,13 +1,13 @@
-use memory::Memory;
-use interrupt_controller::InterruptController;
-use cpu::CPU;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::RwLock;
 use std::cell::RefCell;
-use lcd::LCD;
-use rom::ROM;
 use std::cell::Ref;
+use gpu::lcd::LCD;
+use memory::cartridge::ROM;
+use memory::memory::MemoryController;
+use processor::interrupt_controller::InterruptController;
+use processor::cpu::CPU;
 
 pub struct Gameboy {
     cpu: CPU,
@@ -15,7 +15,7 @@ pub struct Gameboy {
 
 impl Gameboy {
     pub fn new(lcd: Arc<RwLock<LCD>>, rom: ROM, boot: bool) -> Gameboy{
-        let memory = Rc::new(RefCell::new(Memory::new(rom, boot)));
+        let memory = Rc::new(RefCell::new(MemoryController::new(rom, boot)));
         let interrupt = InterruptController::new();
         let mut cpu = CPU::new(interrupt, memory.clone(), boot);
         Self::handle_header(memory.borrow());
@@ -26,7 +26,7 @@ impl Gameboy {
         self.cpu.run();
     }
 
-    fn handle_header(memory: Ref<Memory>){
+    fn handle_header(memory: Ref<MemoryController>){
         let title = Self::extract_title(&memory);
         println!("Game Title: {:?}", title);
         println!("Licensee Code: {:#06X}", memory.following_u16(0x143));
@@ -38,7 +38,7 @@ impl Gameboy {
         println!("Mask ROM Version number: {:#04X}", memory.read(0x14C));
     }
 
-    fn extract_title(memory: &Memory) -> String {
+    fn extract_title(memory: &MemoryController) -> String {
         let mut title = Vec::new();
         for i in 0x134..0x144 {
             let char = memory.read(i);

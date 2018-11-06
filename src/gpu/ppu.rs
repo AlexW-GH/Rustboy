@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use std::sync::RwLock;
-use memory::Memory;
+use memory::memory::MemoryController;
 
 // LCD Control Register
 const LCDC_REGISTER: u16 = 0xFF40;
@@ -22,7 +22,7 @@ const OBP0_REGISTER: u16 = 0xFF48;
 const OBP1_REGISTER: u16 = 0xFF49;
 
 struct PixelProcessingUnit{
-    memory: Arc<RwLock<Memory>>
+    memory: Arc<RwLock<MemoryController>>
 }
 
 impl PixelProcessingUnit {}

@@ -8,36 +8,27 @@ extern crate chrono;
 extern crate piston_window;
 extern crate core;
 
-mod cpu;
-mod renderer;
-mod registers;
-mod rom;
+mod processor;
+mod emulator;
+mod gpu;
 mod memory;
 mod util;
-mod interrupt_controller;
-mod opcodes;
-mod ppu;
-mod gameboy;
-mod lcd;
 
 use std::sync::{Arc, RwLock};
 use std::thread;
 
-use memory::Memory;
-use rom::ROM;
 use std::fs::File;
 use std::io::Read;
-use cpu::CPU;
-use interrupt_controller::InterruptController;
 
 use clap::{Arg, App};
 use piston_window::*;
-use renderer::Renderer;
 use simplelog::TestLogger;
 use simplelog::LevelFilter;
 use simplelog::Config;
-use gameboy::Gameboy;
-use lcd::LCD;
+use memory::cartridge::ROM;
+use gpu::lcd::LCD;
+use emulator::gameboy::Gameboy;
+use emulator::renderer::Renderer;
 
 fn main() {
     let (filename, boot) = retrieve_options();
@@ -88,7 +79,7 @@ fn setup_logging(file_name: &str){
 }
 
 fn create_window() -> PistonWindow{
-    WindowSettings::new("Rustboy", (renderer::HOR_PIXELS*2, renderer::VER_PIXELS*2))
+    WindowSettings::new("Rustboy", (emulator::renderer::HOR_PIXELS*2, emulator::renderer::VER_PIXELS*2))
         .exit_on_esc(true)
         .resizable(false)
         .build()

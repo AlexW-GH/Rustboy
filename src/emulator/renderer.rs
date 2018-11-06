@@ -1,8 +1,7 @@
 use std::sync::{Arc, RwLock};
 
-use memory::Memory;
 use piston_window::*;
-use lcd::LCD;
+use gpu::lcd::LCD;
 
 const BG_TILES_HOR: u32 = 20;
 const BG_TILES_VER: u32 = 18;
