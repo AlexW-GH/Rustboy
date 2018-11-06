@@ -2,7 +2,8 @@ use std::sync::{Arc, RwLock};
 
 use piston_window::*;
 use gpu::lcd::LCD;
-
+use image::imageops;
+use image::FilterType;
 const BG_TILES_HOR: u32 = 20;
 const BG_TILES_VER: u32 = 18;
 const BG_TILE_WIDTH: u32 = 8;
@@ -53,7 +54,19 @@ impl Renderer {
     }
 
     pub fn run(&mut self) {
-
+        while let Some(e) = self.window.next() {
+            let img = self.lcd.read().unwrap().image().clone();
+            let img = imageops::resize(&img, 500, 100, FilterType::Nearest);
+            let img: G2dTexture = Texture::from_image(
+                &mut self.window.factory,
+                &img,
+                &TextureSettings::new()).unwrap();
+            self.window.draw_2d(&e, |c, g| {
+                //Self::draw_background(pixel_width, pixel_height, c, g);
+                clear([0.0, 0.0, 0.0, 0.0], g);
+                image(&img, c.transform, g);
+            });
+        }
     }
 
     fn select_color(line: u16, bits: u32) -> f32{

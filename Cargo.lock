@@ -820,7 +820,9 @@ version = "0.1.0"
 dependencies = [
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.32.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "image 0.20.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "piston-texture 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "piston_window 0.82.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "simplelog 0.5.3 (git+https://github.com/AlexW-GH/simplelog.rs)",
 ]

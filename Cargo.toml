@@ -9,6 +9,5 @@ log = "0.4"
 simplelog = { git = "https://github.com/AlexW-GH/simplelog.rs" }
 chrono = "0.4"
 piston_window = "0.82"
-
-[profile.release]
-lto = true
+image = "0.20"
+piston-texture = "0.6"

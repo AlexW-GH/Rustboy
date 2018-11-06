@@ -6,7 +6,8 @@ extern crate simplelog;
 extern crate clap;
 extern crate chrono;
 extern crate piston_window;
-extern crate core;
+extern crate image;
+extern crate texture;
 
 mod processor;
 mod emulator;
@@ -30,6 +31,7 @@ use gpu::lcd::LCD;
 use emulator::gameboy::Gameboy;
 use emulator::renderer::Renderer;
 
+
 fn main() {
     let (filename, boot) = retrieve_options();
     setup_logging(&filename);
@@ -43,7 +45,7 @@ fn main() {
     });
     let window = create_window();
     let mut renderer = Renderer::new(window, lcd);
-    //renderer.run();
+    renderer.run();
     cpu_handle.join().unwrap_or(panic!("the disco"));
 }
 
