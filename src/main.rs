@@ -27,20 +27,24 @@ use simplelog::TestLogger;
 use simplelog::LevelFilter;
 use simplelog::Config;
 use memory::cartridge::ROM;
+use memory::cartridge::Cartridge;
 use gpu::lcd::LCD;
 use emulator::gameboy::Gameboy;
 use emulator::renderer::Renderer;
+use simplelog::WriteLogger;
+use gpu::ppu::PixelProcessingUnit;
 
 
 fn main() {
     let (filename, boot) = retrieve_options();
     setup_logging(&filename);
     let mut file = File::open(filename).expect("file not found");
-    let rom = ROM::new(read_game(&mut file));
+    let cartridge = Cartridge::new(read_game(&mut file));
+    let ppu = PixelProcessingUnit::new();
     let lcd = Arc::new(RwLock::new(LCD::new()));
     let cpu_lcd = lcd.clone();
+    let mut gameboy = Gameboy::new(cpu_lcd, cartridge, ppu, boot);
     let cpu_handle = thread::spawn(move || {
-        let mut gameboy = Gameboy::new(cpu_lcd, rom, boot);
         gameboy.run();
     });
     let window = create_window();
@@ -76,7 +80,7 @@ fn retrieve_options() -> (String, bool) {
 fn setup_logging(file_name: &str){
     let file_name = file_name.split("/").collect::<Vec<_>>().last().unwrap().to_string();
     let log_path = format!("logs/{}.log", file_name);
-    //WriteLogger::init(LevelFilter::Debug, Config::default(), File::create(log_path).unwrap()).unwrap();
+    WriteLogger::init(LevelFilter::Debug, Config::default(), File::create(log_path).unwrap()).unwrap();
     //TestLogger::init(LevelFilter::Debug, Config::default());
 }
 

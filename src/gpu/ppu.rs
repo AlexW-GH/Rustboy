@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use std::sync::RwLock;
-use memory::memory::MemoryController;
+use memory::memory::Memory;
+use memory::memory::MapsMemory;
 
 // LCD Control Register
 const LCDC_REGISTER: u16 = 0xFF40;
@@ -21,8 +22,27 @@ const BGP_REGISTER: u16 = 0xFF47;
 const OBP0_REGISTER: u16 = 0xFF48;
 const OBP1_REGISTER: u16 = 0xFF49;
 
-struct PixelProcessingUnit{
-    memory: Arc<RwLock<MemoryController>>
+pub struct PixelProcessingUnit{
+    memory: Memory
 }
 
-impl PixelProcessingUnit {}
+impl PixelProcessingUnit {
+    pub fn new() -> PixelProcessingUnit{
+        let memory = Memory::new_read_write(&[0u8; 0], 0x8000, 0x9FFF);
+        PixelProcessingUnit{memory}
+    }
+}
+
+impl MapsMemory for PixelProcessingUnit{
+    fn read(&self, address: u16) -> Result<u8, ()> {
+        self.memory.read(address)
+    }
+
+    fn write(&mut self, address: u16, value: u8) -> Result<(), ()> {
+        self.memory.write(address, value)
+    }
+
+    fn is_in_range(&self, address: u16) -> bool{
+        self.memory.is_in_range(address)
+    }
+}

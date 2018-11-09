@@ -4,30 +4,33 @@ use std::thread::sleep;
 
 use chrono::Duration;
 
-use memory::memory::MemoryController;
 use std::time::Instant;
 use std::rc::Rc;
 use std::cell::RefCell;
 use processor::registers::Registers;
 use processor::interrupt_controller::InterruptController;
 use processor::opcodes;
+use memory::memory::{Memory, MapsMemory};
+use memory::cartridge::Cartridge;
+use gpu::ppu::PixelProcessingUnit;
 
 const NANO_CYCLE_TIME: i64 = 238;
 
 pub struct CPU{
     registers: Registers,
     interrupt: InterruptController,
-    memory: Rc<RefCell<MemoryController>>
+    memory: CpuMemory
 }
 
 impl CPU {
-    pub fn new(interrupt: InterruptController, memory: Rc<RefCell<MemoryController>>, boot_sequence: bool) -> CPU {
+    pub fn new(interrupt: InterruptController, cartridge: Cartridge, ppu: PixelProcessingUnit, boot_sequence: bool) -> CPU {
+        let memory = CpuMemory::new(cartridge, ppu);
         CPU { registers: Registers::new(boot_sequence), interrupt, memory }
     }
 
     fn step (&mut self){
         let pc = self.registers.pc();
-        let opcode = self.memory.borrow().read(pc);
+        let opcode = self.memory.read(pc).unwrap();
         opcodes::execute(opcode, pc, &mut self.registers, &mut self.memory) as i64;
     }
 
@@ -47,13 +50,119 @@ impl CPU {
 
             }
             let pc = self.registers.pc();
-            let opcode = self.memory.borrow().read(pc);
+            let opcode = self.memory.read(pc).unwrap();
             wait_cycles += opcodes::execute(opcode, pc, &mut self.registers, &mut self.memory) as i64;
         }
     }
 }
 
+struct CpuMemory{
+    memory: Vec<Memory>,
+    ppu: PixelProcessingUnit,
+    cartridge: Cartridge
+}
 
+impl CpuMemory {
+    pub fn new(cartridge: Cartridge, ppu: PixelProcessingUnit) -> CpuMemory {
+        let mut memory = Vec::new();
+        memory.push(Memory::new_read_write(&[0u8; 0], 0xC000, 0xDFFF));
+        memory.push(Memory::new_read_write(&[0u8; 0], 0xE000, 0xFDFF));
+        memory.push(Memory::new_read_write(&[0u8; 0], 0xFE00, 0xFE9F));
+        memory.push(Memory::new_read_write(&[0u8; 0], 0xFF00, 0xFF7F));
+        memory.push(Memory::new_read_write(&[0u8; 0], 0xFF80, 0xFFFE));
+        memory.push(Memory::new_read_write(&[0u8; 0], 0xFFFF, 0xFFFF));
+        CpuMemory { memory, cartridge, ppu }
+    }
+
+    fn init_memory(&mut self, boot_sequence: bool) {
+        self.write(0xFF05, 0x00);
+        self.write(0xFF06, 0x00);
+        self.write(0xFF07, 0x00);
+        self.write(0xFF10, 0x80);
+        self.write(0xFF11, 0xBF);
+        self.write(0xFF12, 0xF3);
+        self.write(0xFF14, 0xBF);
+        self.write(0xFF16, 0x3F);
+        self.write(0xFF17, 0x00);
+        self.write(0xFF19, 0xBF);
+        self.write(0xFF1A, 0x7F);
+        self.write(0xFF1B, 0xFF);
+        self.write(0xFF1C, 0x9F);
+        self.write(0xFF1E, 0xBF);
+        self.write(0xFF20, 0xFF);
+        self.write(0xFF21, 0x00);
+        self.write(0xFF22, 0x00);
+        self.write(0xFF23, 0xBF);
+        self.write(0xFF24, 0x77);
+        self.write(0xFF25, 0xF3);
+        self.write(0xFF26, 0xF1);
+        self.write(0xFF40, 0x91);
+        self.write(0xFF42, 0x00);
+        self.write(0xFF43, 0x00);
+        self.write(0xFF45, 0x00);
+        self.write(0xFF47, 0xFC);
+        self.write(0xFF48, 0xFF);
+        self.write(0xFF49, 0xFF);
+        self.write(0xFF4A, 0x00);
+        self.write(0xFF4B, 0x00);
+        self.write(0xFFFF, 0x00);
+    }
+}
+
+impl MapsMemory for CpuMemory{
+    fn read(&self, address: u16) -> Result<u8, ()> {
+        let read = self.memory.iter()
+            .find(|mem| mem.is_in_range(address))
+            .map( |mem| mem.read(address))
+            .unwrap_or_else(|| Err(()));
+        if read.is_err() {
+            if self.ppu.is_in_range(address) {
+                self.ppu.read(address)
+            } else if self.cartridge.is_in_range(address){
+                self.cartridge.read(address)
+            } else {
+                Err(())
+            }
+        } else{
+            read
+        }
+
+    }
+
+    fn write(&mut self, address: u16, value: u8) -> Result<(), ()>{
+        if address == 0xFF02 && value == 0x81 {
+            let output = self.read(0xFF01).unwrap();
+            print!("{}", output as char);
+        }
+        let write = self.memory.iter_mut()
+            .find(|mem| mem.is_in_range(address))
+            .map( |mem| mem.write(address, value))
+            .unwrap_or_else(|| Err(()));
+        if write.is_ok() {
+            if (address >= 0xE000) && (address <= 0xFDFF){
+                self.write(address - 0x2000, value);
+            }
+            write
+        } else {
+            if self.ppu.is_in_range(address) {
+                self.ppu.write(address, value)
+            } else if self.cartridge.is_in_range(address){
+                self.cartridge.write(address, value)
+            } else {
+                Err(())
+            }
+        }
+    }
+
+    fn is_in_range(&self, address: u16) -> bool{
+        let mut read = self.memory.iter()
+            .find(|mem| mem.is_in_range(address))
+            .is_some();
+        read |= self.cartridge.is_in_range(address);
+        read |= self.ppu.is_in_range(address);
+        read
+    }
+}
 
 #[cfg(test)]
 mod tests {

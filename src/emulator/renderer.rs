@@ -62,7 +62,6 @@ impl Renderer {
                 &img,
                 &TextureSettings::new()).unwrap();
             self.window.draw_2d(&e, |c, g| {
-                //Self::draw_background(pixel_width, pixel_height, c, g);
                 clear([0.0, 0.0, 0.0, 0.0], g);
                 image(&img, c.transform, g);
             });
@@ -89,17 +88,5 @@ impl Renderer {
 
     fn change_window_size(&mut self, width: u32, height: u32){
         self.draw_info = Self::create_draw_info(width, height);
-    }
-
-    fn draw_background<G>(pixel_width: f32, pixel_height: f32, c: Context, g: &mut G) where G: Graphics{
-        for i in 0 .. HOR_PIXELS {
-            for j in 0 .. VER_PIXELS{
-                let x = i as f32;
-                let y = (j*0xF) as f32;
-                let pos = x+y;
-                let color = (i as f32)/HOR_PIXELS as f32;
-                //rectangle([0.75, 0.75, 0.75, 1.00]/*[color, color, color, 1.0]*/,[x, y, pixel_width, pixel_height], c.transform, g);
-            }
-        }
     }
 }

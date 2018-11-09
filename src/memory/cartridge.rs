@@ -1,22 +1,52 @@
 use memory::memory::Memory;
+use std::marker::PhantomData;
+use memory::memory::MapsMemory;
 
 const ROM_BANK_SIZE: usize = 0x4000;
 
 pub struct CartridgeHeader{
     title: String,
     manufacturer: String,
-    licensee_code: u8,
+    licensee_code: u16,
     old_licensee_code: u8,
-    cartridge_type: CardridgeType,
+    cartridge_type: CartridgeType,
     rom_size: RomSize,
     ram_size: RamSize,
     destination: String,
     version: u8,
-    checksum: [u8; 24],
+    checksum: u8,
     global_checksum: u16
 }
 
-pub enum CardridgeType{
+impl CartridgeHeader{
+    pub fn new(rom: &[u8]) -> CartridgeHeader {
+        let title = Self::extract_title(rom);
+        let manufacturer = String::new();
+        let licensee_code = ((rom[0x144] as u16) << 8) + rom[0x145] as u16;
+        let cartridge_type = CartridgeType::new(rom[0x147]);
+        let rom_size = RomSize::new(rom[0x148]);
+        let ram_size = RamSize::new(rom[0x149]);
+        let destination = String::new();
+        let old_licensee_code = rom[0x14B];
+        let version = rom[0x14C];
+        let checksum = rom[0x14D];
+        let global_checksum = ((rom[0x14E] as u16) << 8) + rom[0x14F] as u16;
+        CartridgeHeader{title, manufacturer, licensee_code, cartridge_type, rom_size, ram_size, destination, old_licensee_code, version, checksum, global_checksum}
+    }
+
+
+    fn extract_title(rom: &[u8]) -> String {
+        let mut title = Vec::new();
+        for i in 0x134..0x144 {
+            let char = rom[i];
+            if char == 0 { break }
+            title.push(char)
+        }
+        String::from_utf8(title).unwrap_or("".to_string())
+    }
+}
+
+pub enum CartridgeType {
     MBCNone{ram: bool, battery: bool},
     MBC1{ram: bool, battery: bool},
     MBC2{battery: bool},
@@ -31,69 +61,117 @@ pub enum CardridgeType{
     HuC1
 }
 
+impl CartridgeType {
+    pub fn new(code: u8) -> CartridgeType {
+        match code{
+            0x00 => CartridgeType::MBCNone {ram: false, battery: false},
+            0x01 => CartridgeType::MBC1 {ram: false, battery: false},
+            0x02 => CartridgeType::MBC1 {ram: true, battery: false},
+            0x03 => CartridgeType::MBC1 {ram: true, battery: true},
+            0x05 => CartridgeType::MBC2 {battery: false},
+            0x06 => CartridgeType::MBC2 {battery: true},
+            0x0C => CartridgeType::MMM01 {ram: true, battery: false},
+            0x0D => CartridgeType::MMM01 {ram: true, battery: true},
+            0x0F => CartridgeType::MBC3 {timer: true, ram: false, battery: true},
+            0x10 => CartridgeType::MBC3 {timer: true, ram: true, battery: true},
+            0x11 => CartridgeType::MBC3 {timer: false, ram: false, battery: false},
+            0x12 => CartridgeType::MBC3 {timer: false, ram: true, battery: false},
+            0x13 => CartridgeType::MBC3 {timer: false, ram: true, battery: true},
+            _ => panic!("Cartridge type unsupported")
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub enum RomSize{
     KB32,
     KB64,
     KB128,
     KB256,
     KB512,
-    MB1,
-    MB2,
-    MB4,
-    MB8,
-    MB1p1,
-    MB1p2,
-    MB1p5
+    KB1024,
+    KB2048,
+    KB4096,
+    KB8192,
 }
 
+impl RomSize{
+    pub fn new(code: u8) -> RomSize{
+        match code{
+            00 => RomSize::KB32,
+            01 => RomSize::KB64,
+            02 => RomSize::KB128,
+            03 => RomSize::KB256,
+            04 => RomSize::KB512,
+            05 => RomSize::KB1024,
+            06 => RomSize::KB2048,
+            07 => RomSize::KB4096,
+            08 => RomSize::KB8192,
+            _ => panic!("Rom size not supported")
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub enum RamSize{
     None,
     KB2,
     KB8,
     KB32,
     KB64,
-    KB128,
+    KB128
+}
+
+impl RamSize{
+    pub fn new(code: u8) -> RamSize{
+        match code{
+            00 => RamSize::None,
+            01 => RamSize::KB2,
+            02 => RamSize::KB8,
+            03 => RamSize::KB32,
+            04 => RamSize::KB128,
+            05 => RamSize::KB64,
+            _ => panic!("Ram size not supported")
+        }
+    }
 }
 
 struct MemoryBankController{}
 
-impl MemoryBankController{
-    pub fn create(header: CartridgeHeader) -> Box<MBC>{
-        let rom_size = header.rom_size;
-        let ram_size = header.ram_size;
-        match header.cartridge_type{
-            CardridgeType::MBCNone{ram, battery} => {
-                Box::new(MBCNone::new(ram))
+impl MemoryBankController {
+    pub fn new(rom: ROM) -> Box<MapsMemory + Send>{
+        let rom_size = rom.header.rom_size;
+        let ram_size = rom.header.ram_size;
+        let ref rom_ref = rom;
+        match rom_ref.header.cartridge_type{
+            CartridgeType::MBCNone{ram, battery} => {
+                MBCNone::new(&rom, ram)
             },
-            CardridgeType::MBC1{ram, battery} => {
-                Box::new(MBC1::new(ram, rom_size, ram_size))
+            CartridgeType::MBC1{ram, battery} => {
+                MBC1::new(&rom, ram, rom_size, ram_size)
             },
             _ => unimplemented!()
         }
     }
 }
 
-trait MBC{
-    fn read(&self, address: u16) -> Result<u8, ()>;
-    fn write(&mut self, address: u16, value: u8) -> Result<(), ()>;
-}
-
 struct MBCNone {
-    memory: Vec<Memory>
+    memory: Vec<Memory>,
 }
 
 impl MBCNone{
-    fn new(ram: bool) -> MBCNone {
+    fn new(rom: &ROM, ram: bool) -> Box<MBCNone> {
         let mut memory = Vec::new();
-        memory.push(Memory::new_read_only(0x0000, 0x7FFF));
+        let end = if rom.data.len() >= 0x7FFF {0x7FFF} else {rom.data.len()};
+        memory.push(Memory::new_read_only(&rom.data[0x0000 ..= end],0x0000, 0x7FFF));
         if ram {
-            memory.push(Memory::new_read_write(0xA000, 0xBFFF));
+            memory.push(Memory::new_read_write(&[0u8; 0],0xA000, 0xBFFF));
         }
-        MBCNone { memory }
+        Box::new(MBCNone { memory })
     }
 }
 
-impl MBC for MBCNone {
+impl MapsMemory for MBCNone {
     fn read(&self, address: u16) -> Result<u8, ()>{
         self.memory.iter()
             .find(|mem| mem.is_in_range(address))
@@ -107,6 +185,12 @@ impl MBC for MBCNone {
             .map( |mem| mem.write(address, value))
             .unwrap()
     }
+
+    fn is_in_range(&self, address: u16) -> bool{
+        self.memory.iter()
+            .find(|mem| mem.is_in_range(address))
+            .is_some()
+    }
 }
 
 pub struct MBC1 {
@@ -119,7 +203,7 @@ pub struct MBC1 {
 }
 
 impl MBC1{
-    pub fn new(ram: bool, rom_size: RomSize, ram_size: RamSize) -> MBC1 {
+    pub fn new(rom: &ROM, ram: bool, rom_size: RomSize, ram_size: RamSize) -> Box<MBC1> {
         let mut memory_rom = Vec::new();
         let mut memory_ram = Vec::new();
         let rom_banks = match rom_size {
@@ -128,13 +212,18 @@ impl MBC1{
             RomSize::KB128 => 8,
             RomSize::KB256 => 16,
             RomSize::KB512 => 32,
-            RomSize::MB1 => 63,
-            RomSize::MB2 => 125,
+            RomSize::KB1024 => 63,
+            RomSize::KB2048 => 125,
             _ => unreachable!()
         };
-        memory_rom.push(Memory::new_read_only(0x0000, 0x3FFF));
-        for i in 1 .. rom_banks{
-            memory_rom.push(Memory::new_read_only(0x4000, 0x7FFF));
+        let end = if rom.data.len() >= 0x3FFF {0x3FFF} else {rom.data.len()};
+        let mut bank0 = Memory::new_read_only(&rom.data[0x0000 ..= end], 0x0000, 0x3FFF);
+        memory_rom.push(bank0);
+        for i in 1 ..= rom_banks{
+            let start = 0x4000 * i;
+            let end = if rom.data.len() >= start+0x3FFF {start+0x3FFF} else {rom.data.len()};
+            let mut banki = Memory::new_read_only(&rom.data[start ..= end],0x4000, 0x7FFF);
+            memory_rom.push(banki);
         }
         let (ram_banks, bank_size) = if ram {
             match ram_size{
@@ -146,13 +235,13 @@ impl MBC1{
             }
         } else { (0,0) };
         for i in 0 .. ram_banks{
-            memory_ram.push(Memory::new_read_write(0xA000, 0xA000+bank_size));
+            memory_ram.push(Memory::new_read_write(&[0u8; 0],0xA000, 0xA000+bank_size));
         }
-        MBC1 { rom: memory_rom, ram: memory_ram, ram_enable: 0, rom_bank_number: 0, ram_bank_number: 0, mode_select: 0 }
+        Box::new(MBC1 { rom: memory_rom, ram: memory_ram, ram_enable: 0, rom_bank_number: 0, ram_bank_number: 0, mode_select: 0 })
     }
 }
 
-impl MBC for MBC1 {
+impl MapsMemory for MBC1 {
     fn read(&self, address: u16) -> Result<u8, ()>{
         match address {
             0x0000 ... 0x3FFF => self.rom[0].read(address),
@@ -199,56 +288,57 @@ impl MBC for MBC1 {
         let bank = self.ram_bank_number;
         self.ram[bank as usize].write(address, value)
     }
+
+    fn is_in_range(&self, address: u16) -> bool{
+        let mut rom = self.rom.iter()
+            .find(|mem| mem.is_in_range(address))
+            .is_some();
+        let mut ram = self.ram.iter()
+            .find(|mem| mem.is_in_range(address))
+            .is_some();
+        ram || rom
+    }
 }
 
 pub struct Cartridge{
-    rom: ROM,
-    mbc: MBCNone
+    mbc: Box<MapsMemory + Send>
+}
+
+impl Cartridge {
+    pub fn new(game: Vec<u8>) -> Cartridge{
+        let mut data = Vec::new();
+        for val in game{
+            data.push(val);
+        }
+        let header = CartridgeHeader::new(&data);
+        let rom = ROM{data, header};
+        let mbc = MemoryBankController::new(rom);
+        Cartridge { mbc }
+    }
+}
+
+impl MapsMemory for Cartridge{
+    fn read(&self, address: u16) -> Result<u8, ()> {
+        self.mbc.read(address)
+    }
+
+    fn write(&mut self, address: u16, value: u8) -> Result<(), ()> {
+        self.mbc.write(address, value)
+    }
+
+    fn is_in_range(&self, address: u16) -> bool {
+        self.mbc.is_in_range(address)
+    }
 }
 
 pub struct ROM {
-    data: Vec<u8>
+    data: Vec<u8>,
+    header: CartridgeHeader
 }
 
-impl ROM {
-    pub fn new(game: Vec<u8>) -> ROM{
-        let mut data = vec![0; ROM_BANK_SIZE*2];
-        for (i, val) in game.iter().enumerate(){
-            if i<ROM_BANK_SIZE*2 {
-                data[i] = *val;
-            } else {
-                data.push(*val);
-            }
-        }
-        ROM { data }
-    }
-
-    pub fn bank(&self, index: usize) -> &[u8]{
-
-        let start_slice = if self.data.len() >= index*ROM_BANK_SIZE {
-            index*ROM_BANK_SIZE
-        } else {
-            panic!("Memory Range {:#06x} - {:#06x} out of bounds",index*ROM_BANK_SIZE, (index+1)*ROM_BANK_SIZE )
-        };
-        let end_slice = if self.data.len() >= (index+1)*ROM_BANK_SIZE {
-            (index+1)*ROM_BANK_SIZE
-        } else {
-            self.data.len()
-        };
-        &self.data[start_slice .. end_slice]
-    }
-
-    pub fn bank_mut(&mut self, index: usize) -> &mut [u8]{
-        let start_slice = if self.data.len() >= index*ROM_BANK_SIZE {
-            index*ROM_BANK_SIZE
-        } else {
-            panic!("Memory Range {:#06x} - {:#06x} out of bounds",index*ROM_BANK_SIZE, (index+1)*ROM_BANK_SIZE )
-        };
-        let end_slice = if self.data.len() >= (index+1)*ROM_BANK_SIZE {
-            index+1*ROM_BANK_SIZE
-        } else {
-            self.data.len()
-        };
-        self.data[start_slice .. end_slice].as_mut()
+pub fn copy_rom(bank: &mut Memory, rom: &[u8], from: u16){
+    for (i, value) in rom.iter().enumerate(){
+        debug!("Copy: {:#06x}", i);
+        bank.write(i as u16 + from, *value);
     }
 }
