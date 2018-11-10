@@ -4,6 +4,7 @@ use processor::registers::Registers;
 use processor::registers::RegisterR;
 use processor::registers::RegisterSS;
 use util::bit_op;
+use util::memory_op;
 use processor::registers::Condition;
 use processor::registers::RegisterDD;
 use processor::registers::RegisterQQ;
@@ -57,7 +58,7 @@ pub fn execute(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut Maps
 }
 
 fn extended(_: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
-    let extended_opcode = read_memory_following_u8(memory, pc);
+    let extended_opcode = memory_op::read_memory_following_u8(memory, pc);
     OPCODE_EXT_TABLE[extended_opcode as usize](extended_opcode, pc, registers, memory)
 }
 
@@ -87,7 +88,7 @@ fn ld_r_r(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) ->
 fn ld_r_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
     let target = RegisterR::new((opcode >> 3) & 0b111);
-    let value = read_memory_following_u8(memory, pc);
+    let value = memory_op::read_memory_following_u8(memory, pc);
     debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}", pc, opcode, target, value);
     registers.write_r(target, value);
     registers.inc_pc(2);
@@ -99,7 +100,7 @@ fn ld_r_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory
 fn ld_r_mhl(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let target = RegisterR::new((opcode >> 3) & 0b111);
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}[{:#06X}]({:?})", pc, opcode, target, RegisterSS::HL, address, value);
     registers.write_r(target, value);
     registers.inc_pc(1);
@@ -113,7 +114,7 @@ fn ld_mhl_r(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMem
     let address = registers.hl();
     let value = registers.read_r(source);
     debug!("{:#06X}: {:#04X} | LD   {:?}[{:#06X}], {:?}", pc, opcode, RegisterSS::HL, address, value);
-    memory.write(address, value);
+    memory_op::write_memory(memory,  address, value);
     registers.inc_pc(1);
     8
 }
@@ -124,9 +125,9 @@ fn ld_mhl_r(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMem
 fn ld_mhl_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
     let address = registers.hl();
-    let value = read_memory_following_u8(memory, pc);
+    let value = memory_op::read_memory_following_u8(memory, pc);
     debug!("{:#06X}: {:#04X} | LD   {:?}[{:#06X}], {:?}", pc, opcode, RegisterSS::HL, address, value);
-    memory.write(address, value);
+    memory_op::write_memory(memory,  address, value);
     registers.inc_pc(2);
     12
 }
@@ -135,7 +136,7 @@ fn ld_mhl_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemo
 /// 00 001 010
 fn ld_a_mbc(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.bc();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}[{:#06X}]({:?})", pc, opcode, RegisterR::A, RegisterSS::BC, address, value);
     registers.set_a(value);
     registers.inc_pc(1);
@@ -146,7 +147,7 @@ fn ld_a_mbc(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMem
 /// 00 011 010
 fn ld_a_mde(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.de();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}[{:#06X}]({:?})", pc, opcode, RegisterR::A, RegisterSS::DE, address, value);
     registers.set_a(value);
     registers.inc_pc(1);
@@ -157,7 +158,7 @@ fn ld_a_mde(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMem
 /// 11 110 010
 fn ld_a_mc(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = 0xFF00  + registers.c() as u16;
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}[{:#06X}]({:?})", pc, opcode, RegisterR::A, RegisterR::C, address, value);
     registers.set_a(value);
     registers.inc_pc(1);
@@ -170,7 +171,7 @@ fn ld_mc_a(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemo
     let address = 0xFF00  + registers.c() as u16;
     let value = registers.a();
     debug!("{:#06X}: {:#04X} | LD   {:?}[{:#06X}], {:?}", pc, opcode, RegisterR::C, address, RegisterR::A);
-    memory.write(address,value).unwrap();
+    memory_op::write_memory(memory,  address,value);
     registers.inc_pc(1);
     8
 }
@@ -180,8 +181,8 @@ fn ld_mc_a(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemo
 /// nnnnnnnn
 fn ld_a_mn(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
-    let address = 0xff00 + memory.read(pc+1).unwrap() as u16;
-    let value= memory.read(address).unwrap();
+    let address = 0xff00 + memory_op::read_memory(memory, pc+1) as u16;
+    let value= memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | LD   {:?}, [{:#06x}]({:?})", pc, opcode, RegisterR::A, address, value);
     registers.set_a(value);
     registers.inc_pc(2);
@@ -194,9 +195,9 @@ fn ld_a_mn(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemor
 fn ld_mn_a(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
     let value = registers.a();
-    let address = 0xff00 + read_memory_following_u8(memory, pc) as u16;
+    let address = 0xff00 + memory_op::read_memory_following_u8(memory, pc) as u16;
 
-    memory.write(address, value);
+    memory_op::write_memory(memory,  address, value);
     debug!("{:#06X}: {:#04X} | LD   [{:#06X}], {:?}({:?})", pc, opcode, address, RegisterR::A, value);
 
     registers.inc_pc(2);
@@ -209,8 +210,8 @@ fn ld_mn_a(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemor
 /// nnnnnnnn
 fn ld_a_mnn(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
-    let address = read_memory_following_u16(memory, pc);
-    let value = memory.read(address).unwrap();
+    let address = memory_op::read_memory_following_u16(memory, pc);
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | LD   {:?}, [{:#06x}]({:?})", pc, opcode, RegisterR::A, address, value);
 
     registers.set_a(value);
@@ -225,8 +226,8 @@ fn ld_a_mnn(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemo
 fn ld_mnn_a(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
     let value = registers.a();
-    let address = read_memory_following_u16(memory, pc);
-    memory.write(address, value);
+    let address = memory_op::read_memory_following_u16(memory, pc);
+    memory_op::write_memory(memory,  address, value);
     debug!("{:#06X}: {:#04X} | LD   [{:#06X}], {:?}({:?})", pc, opcode, address, RegisterR::A, value);
 
     registers.inc_pc(3);
@@ -237,7 +238,7 @@ fn ld_mnn_a(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemo
 /// 00 101 010
 fn ld_a_mhli(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}+[{:#06x}]({:?})", pc, opcode, RegisterR::A, RegisterDD::HL, address, value);
 
     registers.set_a(value);
@@ -250,7 +251,7 @@ fn ld_a_mhli(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMe
 /// 00 111 010
 fn ld_a_mhld(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}-[{:#06x}]({:?})", pc, opcode, RegisterR::A, RegisterDD::HL, address, value);
 
     registers.set_a(value);
@@ -267,7 +268,7 @@ fn ld_mbc_a(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemo
     let address = registers.bc();
     debug!("{:#06X}: {:#04X} | LD   [{:#06X}], {:?}({:?})", pc, opcode, address, RegisterR::A, value);
 
-    memory.write(address,value).unwrap();
+    memory_op::write_memory(memory,  address,value);
     registers.inc_pc(1);
     8
 }
@@ -280,7 +281,7 @@ fn ld_mde_a(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemo
     let address = registers.de();
     debug!("{:#06X}: {:#04X} | LD   [{:#06X}], {:?}({:?})", pc, opcode, address, RegisterR::A, value);
 
-    memory.write(address,value).unwrap();
+    memory_op::write_memory(memory,  address,value);
     registers.inc_pc(1);
     8
 }
@@ -292,7 +293,7 @@ fn ld_mhli_a(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMe
     let address = registers.hl();
     debug!("{:#06X}: {:#04X} | LD   {:?}+[{:#06X}], {:?}({:?})", pc, opcode, RegisterQQ::HL, address, RegisterR::A, value);
 
-    memory.write(address,value).unwrap();
+    memory_op::write_memory(memory,  address,value);
     registers.set_hl(address+1);
     registers.inc_pc(1);
     8
@@ -305,7 +306,7 @@ fn ld_mhld_a(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMe
     let address = registers.hl();
     debug!("{:#06X}: {:#04X} | LD   {:?}-[{:#06X}], {:?}({:?})", pc, opcode, RegisterQQ::HL, address, RegisterR::A, value);
 
-    memory.write(address,value).unwrap();
+    memory_op::write_memory(memory,  address,value);
     registers.set_hl(address-1);
     registers.inc_pc(1);
     8
@@ -322,7 +323,7 @@ fn ld_mhld_a(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMe
 fn ld_dd_nn(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
     let target = RegisterDD::new((opcode >> 4) & 0b11);
-    let value = read_memory_following_u16(memory, pc);
+    let value = memory_op::read_memory_following_u16(memory, pc);
     debug!("{:#06X}: {:#04X} | LD   {:?}, {:?}", pc, opcode, target, value);
     registers.write_dd(target, value);
     registers.inc_pc(3);
@@ -348,7 +349,7 @@ fn push_qq(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemo
     let sp = registers.sp();
     debug!("{:#06X}: {:#04X} | PUSH {:?}({:?})", pc, opcode, register, value);
 
-    push_u16_stack(memory, value, sp);
+    memory_op::push_u16_stack(memory, value, sp);
     registers.set_sp(sp-2);
     registers.inc_pc(1);
     16
@@ -359,7 +360,7 @@ fn push_qq(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemo
 fn pop_qq(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let register = RegisterQQ::new((opcode >> 4) & 0b11);
     let sp = registers.sp();
-    let value = pop_u16_stack(memory, sp);
+    let value = memory_op::pop_u16_stack(memory, sp);
     debug!("{:#06X}: {:#04X} | POP  {:?}({:?})", pc, opcode, register, value);
 
     registers.write_qq(register, value);
@@ -374,7 +375,7 @@ fn pop_qq(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemor
 fn ldhl_sp_e(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
     let sp = registers.sp();
-    let value = read_memory_following_u8(memory, pc);
+    let value = memory_op::read_memory_following_u8(memory, pc);
     debug!("{:#06X}: {:#04X} | LDHL {:?}, {:?}", pc, opcode, RegisterDD::SP, value);
     registers.set_flags_add_u16(sp, value as u16, Clear, Clear, Calculate, Calculate);
     registers.set_hl(sp.wrapping_add(value as i8 as u16));
@@ -388,12 +389,12 @@ fn ldhl_sp_e(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMem
 /// nnnnnnnn
 fn ld_mnn_sp(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
-    let address = read_memory_following_u16(memory, pc);
+    let address = memory_op::read_memory_following_u16(memory, pc);
     let value = registers.sp();
     debug!("{:#06X}: {:#04X} | LD   {:#06x}, {:?}({:?})", pc, opcode, address, RegisterDD::SP, value);
     {
-        memory.write(address, (value & 0xFF) as u8);
-        memory.write(address+1, ((value >> 8) & 0xFF) as u8);
+        memory_op::write_memory(memory,  address, (value & 0xFF) as u8);
+        memory_op::write_memory(memory,  address+1, ((value >> 8) & 0xFF) as u8);
     }
     registers.inc_pc(3);
     20
@@ -423,7 +424,7 @@ fn add_a_r(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) -
 fn add_a_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
     let val_a = registers.a();
-    let val_n = read_memory_following_u8(memory, pc);
+    let val_n = memory_op::read_memory_following_u8(memory, pc);
     debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
     let result = val_a.wrapping_add(val_n);
     registers.set_flags_add(val_a, val_n, Calculate, Clear, Calculate, Calculate);
@@ -437,7 +438,7 @@ fn add_a_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemor
 fn add_a_mhl(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let hl = registers.hl();
     let val_a = registers.a();
-    let val_hl = memory.read(hl).unwrap();
+    let val_hl = memory_op::read_memory(memory, hl);
     debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
     let result = val_a.wrapping_add(val_hl);
     registers.set_flags_add(val_a, val_hl, Calculate, Clear, Calculate, Calculate);
@@ -467,7 +468,7 @@ fn adc_a_r(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) -
 fn adc_a_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
     let val_a = registers.a();
-    let val_n = read_memory_following_u8(memory, pc);
+    let val_n = memory_op::read_memory_following_u8(memory, pc);
     let cy_flag = registers.flag_cy();
     debug!("{:#06X}: {:#04X} | ADC  {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
     let result = val_a.wrapping_add(val_n).wrapping_add(cy_flag);
@@ -482,7 +483,7 @@ fn adc_a_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemor
 fn adc_a_mhl(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let hl = registers.hl();
     let val_a = registers.a();
-    let val_hl = memory.read(hl).unwrap();
+    let val_hl = memory_op::read_memory(memory, hl);
     let cy_flag = registers.flag_cy();
     debug!("{:#06X}: {:#04X} | ADC  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
     let result = val_a.wrapping_add(val_hl).wrapping_add(cy_flag);
@@ -512,7 +513,7 @@ fn sub_a_r(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) -
 fn sub_a_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
     let val_a = registers.a();
-    let val_n = read_memory_following_u8(memory, pc);
+    let val_n = memory_op::read_memory_following_u8(memory, pc);
     debug!("{:#06X}: {:#04X} | SUB  {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
     let result = val_a.wrapping_sub(val_n);
     registers.set_flags_sub(val_a, val_n, Calculate, Set, Calculate, Calculate);
@@ -526,7 +527,7 @@ fn sub_a_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemor
 fn sub_a_mhl(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let hl = registers.hl();
     let val_a = registers.a();
-    let val_hl = memory.read(hl).unwrap();
+    let val_hl = memory_op::read_memory(memory, hl);
     debug!("{:#06X}: {:#04X} | SUB  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
     let result = val_a.wrapping_sub(val_hl);
     registers.set_flags_sub(val_a, val_hl, Calculate, Set, Calculate, Calculate);
@@ -556,7 +557,7 @@ fn sbc_a_r(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) -
 fn sbc_a_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
     let val_a = registers.a();
-    let val_n = read_memory_following_u8(memory, pc);
+    let val_n = memory_op::read_memory_following_u8(memory, pc);
     let cy_flag = registers.flag_cy();
     debug!("{:#06X}: {:#04X} | SBC  {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
     let result = val_a.wrapping_sub(val_n).wrapping_sub(cy_flag);
@@ -571,7 +572,7 @@ fn sbc_a_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemor
 fn sbc_a_mhl(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let hl = registers.hl();
     let val_a = registers.a();
-    let val_hl = memory.read(hl).unwrap();
+    let val_hl = memory_op::read_memory(memory, hl);
     let cy_flag = registers.flag_cy();
     debug!("{:#06X}: {:#04X} | SBC  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
     let result = val_a.wrapping_sub(val_hl).wrapping_sub(cy_flag);
@@ -600,7 +601,7 @@ fn and_r(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) -> 
 /// nnnnnnnn
 fn and_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
-    let value = read_memory_following_u8(memory, pc);
+    let value = memory_op::read_memory_following_u8(memory, pc);
     let reg_a_value = registers.a();
     debug!("{:#06X}: {:#04X} | AND  {:?}({:?}), {:?}", pc, opcode, RegisterR::A, reg_a_value, value);
     let result = reg_a_value & value;
@@ -614,7 +615,7 @@ fn and_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory)
 /// 10 100 110
 fn and_mhl(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     let reg_a_value = registers.a();
     debug!("{:#06X}: {:#04X} | AND  {:?}({:?}), {:?}[{:?}]({:?})", pc, opcode,
            RegisterR::A, reg_a_value, RegisterDD::HL, address, value);
@@ -644,7 +645,7 @@ fn or_r(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) -> u
 /// nnnnnnnn
 fn or_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
-    let value = read_memory_following_u8(memory, pc);
+    let value = memory_op::read_memory_following_u8(memory, pc);
     let reg_a_value = registers.a();
     debug!("{:#06X}: {:#04X} | OR   {:?}({:?}), {:?}", pc, opcode, RegisterR::A, reg_a_value, value);
     let result = reg_a_value | value;
@@ -658,7 +659,7 @@ fn or_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) 
 /// 10 110 110
 fn or_mhl(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     let reg_a_value = registers.a();
     debug!("{:#06X}: {:#04X} | OR   {:?}({:?}), {:?}[{:?}]({:?})", pc, opcode,
            RegisterR::A, reg_a_value, RegisterDD::HL, address, value);
@@ -688,7 +689,7 @@ fn xor_r(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) -> 
 /// nnnnnnnn
 fn xor_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
-    let value = read_memory_following_u8(memory, pc);
+    let value = memory_op::read_memory_following_u8(memory, pc);
     let reg_a_value = registers.a();
     debug!("{:#06X}: {:#04X} | XOR  {:?}({:?}), {:?}", pc, opcode, RegisterR::A, reg_a_value, value);
     let result = reg_a_value ^ value;
@@ -702,7 +703,7 @@ fn xor_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory)
 /// 10 101 110
 fn xor_mhl(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     let reg_a_value = registers.a();
     debug!("{:#06X}: {:#04X} | XOR  {:?}({:?}), {:?}[{:?}]({:?})", pc, opcode, RegisterR::A, reg_a_value, RegisterDD::HL, address, value);
     let result = reg_a_value ^ value;
@@ -730,7 +731,7 @@ fn cp_r(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) -> u
 fn cp_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
     let val_a = registers.a();
-    let val_n = read_memory_following_u8(memory, pc);
+    let val_n = memory_op::read_memory_following_u8(memory, pc);
     debug!("{:#06X}: {:#04X} | CP   {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
     registers.set_flags_sub(val_a, val_n, Calculate, Set, Calculate, Calculate);
     registers.inc_pc(2);
@@ -742,7 +743,7 @@ fn cp_n(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) 
 fn cp_mhl(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let hl = registers.hl();
     let val_a = registers.a();
-    let val_hl = memory.read(hl).unwrap();
+    let val_hl = memory_op::read_memory(memory, hl);
     debug!("{:#06X}: {:#04X} | SUB  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
     registers.set_flags_sub(val_a, val_hl, Calculate, Set, Calculate, Calculate);
     registers.inc_pc(1);
@@ -766,8 +767,8 @@ fn inc_r(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) -> 
 /// 00 110 100
 fn inc_mhl(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
-    memory.write(address, value.wrapping_add(1));
+    let value = memory_op::read_memory(memory, address);
+    memory_op::write_memory(memory,  address, value.wrapping_add(1));
     debug!("{:#06X}: {:#04X} | INC  {:?}{:#06x}({:?})", pc, opcode, RegisterDD::HL, address, value);
     registers.set_flags_add(value, 1,
                                  Calculate, Clear, Calculate, Ignore);
@@ -792,8 +793,8 @@ fn dec_r(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) -> 
 /// 00 110 101
 fn dec_mhl(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
-    memory.write(address, value.wrapping_sub(1));
+    let value = memory_op::read_memory(memory, address);
+    memory_op::write_memory(memory,  address, value.wrapping_sub(1));
     debug!("{:#06X}: {:#04X} | DEC  {:?}[{:#06x}]({:?})", pc, opcode, RegisterDD::HL, address, value);
     registers.set_flags_sub(value, 1,
                                  Calculate, Set, Calculate, Ignore);
@@ -825,7 +826,7 @@ fn add_hl_ss(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory)
 fn add_sp_e(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let pc = registers.pc();
     let val_sp = registers.sp();
-    let val_n = read_memory_following_u8(memory, pc);
+    let val_n = memory_op::read_memory_following_u8(memory, pc);
     debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), ({:?})", pc, opcode, RegisterSS::SP, val_sp, val_n);
     let result = add_signed(val_sp, val_n);
     registers.set_flags_add_u16(val_sp, val_n as u16, Clear, Clear, Calculate, Calculate);
@@ -911,10 +912,10 @@ fn rlc_r(ext_opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory)
 /// 00 000 110
 fn rlc_mhl(ext_opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | RLC   {:?}[{:#06x}]({:#010b})", pc, ext_opcode, RegisterDD::HL, address, value);
     let rotated = rlc_m(value, true, registers);
-    memory.write(address, rotated).unwrap();
+    memory_op::write_memory(memory,  address, rotated);
     registers.inc_pc(2);
     16
 }
@@ -934,10 +935,10 @@ fn rl_r(ext_opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) 
 /// 00 010 110
 fn rl_mhl(ext_opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | RL   {:?}[{:#06x}]({:#010b})", pc, ext_opcode, RegisterDD::HL, address, value);
     let rotated = rl_m(value, true, registers);
-    memory.write(address, rotated).unwrap();
+    memory_op::write_memory(memory,  address, rotated);
     registers.inc_pc(2);
     16
 }
@@ -957,10 +958,10 @@ fn rrc_r(ext_opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory)
 /// 00 001 110
 fn rrc_mhl(ext_opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | RRC   {:?}[{:#06x}]({:#010b})", pc, ext_opcode, RegisterDD::HL, address, value);
     let rotated = rrc_m(value, true, registers);
-    memory.write(address, rotated).unwrap();
+    memory_op::write_memory(memory,  address, rotated);
     registers.inc_pc(2);
     16
 }
@@ -980,10 +981,10 @@ fn rr_r(ext_opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) 
 /// 00 011 110
 fn rr_mhl(ext_opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | RR   {:?}[{:#06x}]({:#010b})", pc, ext_opcode, RegisterDD::HL, address, value);
     let rotated = rr_m(value, true, registers);
-    memory.write(address, rotated).unwrap();
+    memory_op::write_memory(memory,  address, rotated);
     registers.inc_pc(2);
     16
 }
@@ -1095,13 +1096,13 @@ fn sla_r(ext_opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory)
 /// 00 100 110
 fn sla_mhl(ext_opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | SLA   {:?}[{:#06x}]({:#010b})", pc, ext_opcode, RegisterDD::HL, address, value);
     let bit7 = (value>>7) & 1;
     let result = value << 1;
     let flags = calc_flags_for_shift_and_rotate(registers.f(), bit7, result, true);
     registers.set_f(flags);
-    memory.write(address, result).unwrap();
+    memory_op::write_memory(memory,  address, result);
     registers.inc_pc(2);
     16
 }
@@ -1128,14 +1129,14 @@ fn sra_r(ext_opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory)
 /// 00 100 110
 fn sra_mhl(ext_opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | SRA   {:?}[{:#06x}]({:#010b})", pc, ext_opcode, RegisterDD::HL, address, value);
     let bit0 = value & 1;
     let bit7 = (value >> 7) & 1;
     let result = (value >> 1) | (bit7 << 7);
     let flags = calc_flags_for_shift_and_rotate(registers.f(), bit0, result, true);
     registers.set_f(flags);
-    memory.write(address, result).unwrap();
+    memory_op::write_memory(memory,  address, result);
     registers.inc_pc(2);
     16
 }
@@ -1161,13 +1162,13 @@ fn srl_r(ext_opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory)
 /// 00 111 110
 fn srl_mhl(ext_opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | SRL   {:?}[{:#06x}]({:#010b})", pc, ext_opcode, RegisterDD::HL, address, value);
     let bit0 = value & 1;
     let result = value >> 1;
     let flags = calc_flags_for_shift_and_rotate(registers.f(), bit0, result, true);
     registers.set_f(flags);
-    memory.write(address, result).unwrap();
+    memory_op::write_memory(memory,  address, result);
     registers.inc_pc(2);
     16
 }
@@ -1191,11 +1192,11 @@ fn swap_r(ext_opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory
 /// 00 110 110
 fn swap_mhl(ext_opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     debug!("{:#06X}: {:#04X} | SWAP  {:?}[{:#06x}]({:#010b})", pc, ext_opcode, RegisterDD::HL, address, value);
     let result = ((value & 0b111) << 4) | (value >> 4) & 0b1111;
     registers.set_flags(if result == 0 {1} else {0}, 0, 0, 0);
-    memory.write(address, result).unwrap();
+    memory_op::write_memory(memory,  address, result);
     registers.inc_pc(2);
     16
 }
@@ -1228,7 +1229,7 @@ fn bit_b_r(ext_opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemor
 /// 01 bbb 110
 fn bit_b_mhl(ext_opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     let bit = (ext_opcode >> 3) & 0b111;
     debug!("{:#06X}: {:#04X} | BIT  {:?}, [{:#06x}]({:#010b})", pc, ext_opcode, bit, address, value);
 
@@ -1262,12 +1263,12 @@ fn set_b_r(ext_opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemor
 /// 11 bbb 110
 fn set_b_mhl(ext_opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     let bit = (ext_opcode >> 3) & 0b111;
     debug!("{:#06X}: {:#04X} | SET  {:?}, [{:#06x}]({:#010b})", pc, ext_opcode, bit, address, value);
 
     let result = bit_op::set_bit(value, bit);
-    memory.write(address, result).unwrap();
+    memory_op::write_memory(memory,  address, result);
     registers.inc_pc(2);
     16
 }
@@ -1292,12 +1293,12 @@ fn res_b_r(ext_opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemor
 /// 10 bbb 110
 fn res_b_mhl(ext_opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let address = registers.hl();
-    let value = memory.read(address).unwrap();
+    let value = memory_op::read_memory(memory, address);
     let bit = (ext_opcode >> 3) & 0b111;
     debug!("{:#06X}: {:#04X} | RES  {:?}, [{:#06x}]({:#010b})", pc, ext_opcode, bit, address, value);
 
     let result = bit_op::clear_bit(value, bit);
-    memory.write(address, result).unwrap();
+    memory_op::write_memory(memory,  address, result);
     registers.inc_pc(2);
     16
 }
@@ -1311,7 +1312,7 @@ fn res_b_mhl(ext_opcode: u8, pc: u16, registers: &mut Registers, memory: &mut Ma
 /// nnnnnnnn
 /// nnnnnnnn
 fn jp_nn(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
-    let address = read_memory_following_u16(memory,pc);
+    let address = memory_op::read_memory_following_u16(memory,pc);
     debug!("{:#06X}: {:#04X} | JP   {:#06X}", pc, opcode, address);
     registers.set_pc(address);
     16
@@ -1323,7 +1324,7 @@ fn jp_nn(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory
 /// nnnnnnnn
 fn jp_cc_nn(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let condition = Condition::new((opcode>>3) & 0b11);
-    let address = read_memory_following_u16(memory,pc);
+    let address = memory_op::read_memory_following_u16(memory,pc);
     if registers.check_condition(condition) {
         debug!("{:#06X}: {:#04X} | JP   {:?}, {:#06X} ||| (jp)", pc, opcode, condition, address);
         registers.set_pc(address);
@@ -1339,7 +1340,7 @@ fn jp_cc_nn(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMem
 /// 00 011 000
 /// eeeeeeee
 fn jr_e(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
-    let value = read_memory_following_u8(memory,pc);
+    let value = memory_op::read_memory_following_u8(memory,pc);
     debug!("{:#06X}: {:#04X} | JR   {:?}", pc, opcode, value as i8);
     let pc = add_signed(pc, value);
     registers.set_pc(pc.wrapping_add(2));
@@ -1351,7 +1352,7 @@ fn jr_e(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory)
 /// eeeeeeee
 fn jr_cc_e(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let condition = Condition::new((opcode>>3) & 0b11);
-    let value = read_memory_following_u8(memory,pc);
+    let value = memory_op::read_memory_following_u8(memory,pc);
     if registers.check_condition(condition) {
         debug!("{:#06X}: {:#04X} | JR   {:?}, {:?} ||| (jp)", pc, opcode, condition, value as i8);
         let pc = add_signed(pc, value);
@@ -1382,10 +1383,10 @@ fn jp_mhl(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) ->
 /// nnnnnnnn
 /// nnnnnnnn
 fn call_nn(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
-    let address = read_memory_following_u16(memory,pc);
+    let address = memory_op::read_memory_following_u16(memory,pc);
     let mut sp = registers.sp();
     debug!("{:#06X}: {:#04X} | CALL {:#06x}", pc, opcode, address);
-    push_u16_stack(memory, pc.wrapping_add(3), sp);
+    memory_op::push_u16_stack(memory, pc.wrapping_add(3), sp);
     sp = sp -2;
     registers.set_sp(sp);
     registers.set_pc(address);
@@ -1398,11 +1399,11 @@ fn call_nn(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemo
 /// nnnnnnnn
 fn call_c_nn(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let condition = Condition::new((opcode>>3) & 0b11);
-    let address = read_memory_following_u16(memory,pc);
+    let address = memory_op::read_memory_following_u16(memory,pc);
     if registers.check_condition(condition) {
         debug!("{:#06X}: {:#04X} | CALL {:?}, {:#06x} ||| (jp)", pc, opcode, condition, address);
         let mut sp = registers.sp();
-        push_u16_stack(memory, pc.wrapping_add(3), sp);
+        memory_op::push_u16_stack(memory, pc.wrapping_add(3), sp);
         sp = sp -2;
         registers.set_sp(sp);
         registers.set_pc(address);
@@ -1419,7 +1420,7 @@ fn call_c_nn(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMe
 /// 11 001 001
 fn ret(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let mut sp = registers.sp();
-    let pc = pop_u16_stack(memory, sp);
+    let pc = memory_op::pop_u16_stack(memory, sp);
     debug!("{:#06X}: {:#04X} | RET  [{:#06x}]", pc, opcode, pc);
     sp = sp + 2;
     registers.set_sp(sp);
@@ -1431,7 +1432,7 @@ fn ret(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -
 /// 11 001 001
 fn reti(opcode: u8, _: u16, registers: &mut Registers, memory: &mut MapsMemory) -> u8{
     let mut sp = registers.sp();
-    let pc = pop_u16_stack(memory, sp);
+    let pc = memory_op::pop_u16_stack(memory, sp);
     debug!("{:#06X}: {:#04X} | RETI [{:#06x}]", pc, opcode, pc);
     sp = sp + 2;
     registers.set_sp(sp);
@@ -1447,7 +1448,7 @@ fn ret_c(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory
     let mut sp = registers.sp();
     let condition = Condition::new((opcode>>3) & 0b11);
     if registers.check_condition(condition) {
-        let pc = pop_u16_stack(memory, sp);
+        let pc = memory_op::pop_u16_stack(memory, sp);
         debug!("{:#06X}: {:#04X} | RET {:?}, [{:#06x}] ||| (ret)", pc, opcode, condition, pc);
         sp = sp.wrapping_add(2);
         registers.set_sp(sp);
@@ -1478,7 +1479,7 @@ fn rst_t(opcode: u8, pc: u16, registers: &mut Registers, memory: &mut MapsMemory
     };
     let mut sp = registers.sp();
     debug!("{:#06X}: {:#04X} | RST {:#06x}", pc, opcode, address);
-    push_u16_stack(memory, pc.wrapping_add(1), sp);
+    memory_op::push_u16_stack(memory, pc.wrapping_add(1), sp);
     sp = sp.wrapping_sub(2);
     registers.set_sp(sp);
     registers.set_pc(address);
@@ -1557,45 +1558,19 @@ fn stop(_: u8, _: u16, _: &mut Registers, _: &mut MapsMemory) -> u8{
 /// EI
 /// 11 111 011
 fn ei(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) -> u8{
-    debug!("{:#06X}: {:#04X} | EI", pc, opcode);
-    // TODO this is not working atm
-    // interrupt.write().unwrap().master_enable = true;
-    registers.inc_pc(1);
-    4
+    unimplemented!("EI should be handled in the CPU directly")
+
 }
 
 /// DI
 /// 11 110 011
 fn di(opcode: u8, pc: u16, registers: &mut Registers, _: &mut MapsMemory) -> u8{
-    debug!("{:#06X}: {:#04X} | DI", pc, opcode);
-    // TODO this is not working atm
-    // interrupt.write().unwrap().master_enable = false;
-    registers.inc_pc(1);
-    4
+    unimplemented!("DI should be handled in the CPU directly")
 }
 
 // ---------------- //
 // Helper Functions //
 // ---------------- //
-
-fn read_memory_following_u8(memory: &mut MapsMemory, address: u16) -> u8 {
-    memory.read(address +1).unwrap()
-}
-
-fn read_memory_following_u16(memory: &mut MapsMemory, address: u16) -> u16 {
-    ((memory.read(address + 2).unwrap() as u16) << 8 ) + memory.read(address +1).unwrap() as u16
-}
-
-pub fn push_u16_stack(memory: &mut MapsMemory, value: u16, sp: u16){
-    memory.write(sp-1, ((value>>8) & 0xFF) as u8 );
-    memory.write(sp-2, (value & 0xFF) as u8 );
-}
-
-pub fn pop_u16_stack(memory: &mut MapsMemory, sp: u16) -> u16{
-    let val_lo = memory.read(sp).unwrap();
-    let val_hi = memory.read(sp + 1).unwrap();
-    ((val_hi as u16) << 8) + val_lo as u16
-}
 
 fn add_signed(a: u16, b: u8) -> u16 {
     ((a as i16).wrapping_add(b as i8 as i16)) as u16

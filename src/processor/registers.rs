@@ -793,7 +793,7 @@ impl Condition {
 
 #[cfg(test)]
 mod tests {
-    use registers::Registers;
+    use processor::registers::Registers;
 
     #[test]
     fn everything_setup_after_initialization_with_boot_sequence() {

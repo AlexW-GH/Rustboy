@@ -216,12 +216,12 @@ impl MBC1{
             RomSize::KB2048 => 125,
             _ => unreachable!()
         };
-        let end = if rom.data.len() >= 0x3FFF {0x3FFF} else {rom.data.len()};
+        let end = if rom.data.len() >= 0x3FFF {0x3FFF} else {rom.data.len() -1};
         let mut bank0 = Memory::new_read_only(&rom.data[0x0000 ..= end], 0x0000, 0x3FFF);
         memory_rom.push(bank0);
         for i in 1 ..= rom_banks{
-            let start = 0x4000 * i;
-            let end = if rom.data.len() >= start+0x3FFF {start+0x3FFF} else {rom.data.len()};
+            let start = if rom.data.len() >= 0x4000 * i {0x4000 * i} else {rom.data.len()};
+            let end = if rom.data.len() >= start+0x3FFF {start+0x3FFF} else {rom.data.len() -1};
             let mut banki = Memory::new_read_only(&rom.data[start ..= end],0x4000, 0x7FFF);
             memory_rom.push(banki);
         }
@@ -339,6 +339,6 @@ pub struct ROM {
 pub fn copy_rom(bank: &mut Memory, rom: &[u8], from: u16){
     for (i, value) in rom.iter().enumerate(){
         debug!("Copy: {:#06x}", i);
-        bank.write(i as u16 + from, *value);
+        bank.write(i as u16 + from, *value).unwrap();
     }
 }
