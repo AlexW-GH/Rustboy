@@ -14,15 +14,8 @@ pub const VER_PIXELS: u32 = BG_TILES_VER*BG_TILE_HEIGHT;
 pub struct Renderer {
     window: PistonWindow,
     lcd: Arc<RwLock<LCD>>,
-
-    draw_info: DrawInformation,
-}
-
-struct DrawInformation{
-    draw_offset_top: u32,
-    draw_offset_left: u32,
-    pixel_width: u32,
-    pixel_height: u32,
+    window_width: u32,
+    window_height: u32,
 }
 
 #[derive(Debug)]
@@ -40,17 +33,7 @@ struct BgTile{
 impl Renderer {
     pub fn new(window: PistonWindow, lcd: Arc<RwLock<LCD>>) -> Renderer {
         let size: Size = window.size();
-        let draw_info = Renderer::create_draw_info(size.width, size.height);
-        Renderer { window, lcd, draw_info }
-    }
-
-    fn create_draw_info(width: u32, height: u32) -> DrawInformation{
-        let draw_offset_left = (width % HOR_PIXELS) / 2;
-        let draw_offset_top = (height % VER_PIXELS) / 2;
-        let pixel_width = width / HOR_PIXELS;
-        let pixel_height = height / VER_PIXELS;
-
-        DrawInformation{draw_offset_left, draw_offset_top, pixel_width, pixel_height}
+        Renderer { window, lcd , window_width: size.width, window_height: size.height}
     }
 
     pub fn run(&mut self) {
@@ -87,6 +70,7 @@ impl Renderer {
     }
 
     fn change_window_size(&mut self, width: u32, height: u32){
-        self.draw_info = Self::create_draw_info(width, height);
+        self.window_height = height;
+        self.window_width = width;
     }
 }

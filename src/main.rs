@@ -23,15 +23,10 @@ use std::io::Read;
 
 use clap::{Arg, App};
 use piston_window::*;
-use simplelog::TestLogger;
-use simplelog::LevelFilter;
-use simplelog::Config;
-use memory::cartridge::ROM;
 use memory::cartridge::Cartridge;
 use gpu::lcd::LCD;
 use emulator::gameboy::Gameboy;
 use emulator::renderer::Renderer;
-use simplelog::WriteLogger;
 use gpu::ppu::PixelProcessingUnit;
 
 
@@ -44,13 +39,12 @@ fn main() {
     let lcd = Arc::new(RwLock::new(LCD::new()));
     let cpu_lcd = lcd.clone();
     let mut gameboy = Gameboy::new(cpu_lcd, cartridge, ppu, boot);
-    let cpu_handle = thread::spawn(move || {
+    thread::spawn(move || {
         gameboy.run();
     });
     let window = create_window();
     let mut renderer = Renderer::new(window, lcd);
     renderer.run();
-    cpu_handle.join().unwrap_or(panic!("the disco"));
 }
 
 fn read_game(file: &mut File) -> Vec<u8>{

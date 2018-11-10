@@ -1,5 +1,4 @@
 use memory::memory::Memory;
-use std::marker::PhantomData;
 use memory::memory::MapsMemory;
 
 const ROM_BANK_SIZE: usize = 0x4000;
@@ -217,7 +216,7 @@ impl MBC1{
             _ => unreachable!()
         };
         let end = if rom.data.len() >= 0x3FFF {0x3FFF} else {rom.data.len() -1};
-        let mut bank0 = Memory::new_read_only(&rom.data[0x0000 ..= end], 0x0000, 0x3FFF);
+        let bank0 = Memory::new_read_only(&rom.data[0x0000 ..= end], 0x0000, 0x3FFF);
         memory_rom.push(bank0);
         for i in 1 ..= rom_banks{
             let start = if rom.data.len() >= 0x4000 * i {0x4000 * i} else {rom.data.len()};
@@ -234,7 +233,7 @@ impl MBC1{
                 _ => unreachable!()
             }
         } else { (0,0) };
-        for i in 0 .. ram_banks{
+        for _ in 0 .. ram_banks{
             memory_ram.push(Memory::new_read_write(&[0u8; 0],0xA000, 0xA000+bank_size));
         }
         Box::new(MBC1 { rom: memory_rom, ram: memory_ram, ram_enable: 0, rom_bank_number: 0, ram_bank_number: 0, mode_select: 0 })
@@ -283,17 +282,17 @@ impl MapsMemory for MBC1 {
                 self.mode_select = value & 0b1;
                 return Ok(());
             },
-            _ => unreachable!()
+            _ => ()
         }
         let bank = self.ram_bank_number;
         self.ram[bank as usize].write(address, value)
     }
 
     fn is_in_range(&self, address: u16) -> bool{
-        let mut rom = self.rom.iter()
+        let rom = self.rom.iter()
             .find(|mem| mem.is_in_range(address))
             .is_some();
-        let mut ram = self.ram.iter()
+        let ram = self.ram.iter()
             .find(|mem| mem.is_in_range(address))
             .is_some();
         ram || rom
@@ -334,11 +333,4 @@ impl MapsMemory for Cartridge{
 pub struct ROM {
     data: Vec<u8>,
     header: CartridgeHeader
-}
-
-pub fn copy_rom(bank: &mut Memory, rom: &[u8], from: u16){
-    for (i, value) in rom.iter().enumerate(){
-        debug!("Copy: {:#06x}", i);
-        bank.write(i as u16 + from, *value).unwrap();
-    }
 }

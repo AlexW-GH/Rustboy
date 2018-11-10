@@ -1,6 +1,5 @@
 use image::ImageBuffer;
 use image::Rgba;
-use piston_window::image::Image;
 
 const BG_TILES_HOR: u32 = 20;
 const BG_TILES_VER: u32 = 18;
@@ -15,7 +14,7 @@ pub struct LCD{
 
 impl LCD{
     pub fn new() -> LCD{
-        let image =ImageBuffer::from_fn(HOR_PIXELS, VER_PIXELS, |x, y| {
+        let image =ImageBuffer::from_fn(HOR_PIXELS, VER_PIXELS, |_, _| {
             Rgba([200u8; 4])
         });
         LCD{image}

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-use std::sync::RwLock;
 use memory::memory::Memory;
 use memory::memory::MapsMemory;
 

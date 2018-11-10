@@ -1,36 +1,3 @@
-use std::fs::File;
-use std::io::Read;
-use memory::cartridge::ROM;
-
-
-const BOOT_OFFSET: u16 = 0x0000;
-const BOOT_LAST: u16 = 0x00FF;
-const ROM_BANK_0_OFFSET: u16 = 0x0000;
-const ROM_BANK_0_LAST: u16 = 0x3FFF ;
-const ROM_BANK_1N_OFFSET: u16 = 0x4000;
-const ROM_BANK_1N_LAST: u16 = 0x7FFF;
-const VRAM_OFFSET: u16 = 0x8000;
-const VRAM_LAST: u16 = 0x9FFF;
-const RAM_OFFSET: u16 = 0xA000;
-const RAM_LAST: u16 = 0xBFFF;
-const WRAM_0_OFFSET: u16 = 0xC000;
-const WRAM_0_LAST: u16 = 0xCFFF;
-const WRAM_1N_OFFSET: u16 = 0xD000;
-const WRAM_1N_LAST: u16 = 0xDFFF;
-const ECHO_RAM_OFFSET: u16 = 0xE000;
-const ECHO_RAM_LAST: u16 = 0xFDFF;
-const SPRITE_ATTRIB_TABLE_OFFSET: u16 = 0xFE00;
-const SPRITE_ATTRIB_TABLE_LAST: u16 = 0xFE9F;
-const UNUSABLE_OFFSET: u16 = 0xFEA0;
-const UNUSABLE_LAST: u16 = 0xFEFF;
-const IO_REGISTERS_OFFSET: u16 = 0xFF00;
-const IO_REGISTERS_LAST: u16 = 0xFF7F;
-const HRAM_OFFSET: u16 = 0xFF80;
-const HRAM_LAST: u16 = 0xFFFE;
-const INTERRUPTS_ENABLE_REGISTER_OFFSET: u16 = 0xFFFF;
-
-const BOOT_ADDRESS: u16 = 0xFF50;
-
 pub struct ReadOnly{memory: MemoryInternal}
 pub struct WriteOnly{memory: MemoryInternal}
 pub struct ReadWrite{memory: MemoryInternal}
@@ -69,7 +36,7 @@ impl MapsMemory for Memory{
         match self{
             Memory::ReadOnly{memory} => Ok(memory.read(address)),
             Memory::ReadWrite{memory} => Ok(memory.read(address)),
-            Memory::WriteOnly{memory} => Err(()),
+            Memory::WriteOnly{memory: _} => Err(()),
         }
     }
 
@@ -83,7 +50,7 @@ impl MapsMemory for Memory{
                 memory.write(address, value);
                 Ok(())
             },
-            Memory::ReadOnly{memory} => Err(())
+            Memory::ReadOnly{memory: _} => Err(())
         }
     }
 

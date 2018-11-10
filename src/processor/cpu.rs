@@ -1,12 +1,4 @@
-use std::sync::{Arc, RwLock};
-use std::time::SystemTime;
-use std::thread::sleep;
-
-use chrono::Duration;
-
 use std::time::Instant;
-use std::rc::Rc;
-use std::cell::RefCell;
 use processor::registers::Registers;
 use processor::interrupt_controller::InterruptController;
 use processor::opcodes;
@@ -17,8 +9,8 @@ use gpu::ppu::PixelProcessingUnit;
 const NANO_CYCLE_TIME: i64 = 238;
 
 pub struct CPU{
-    registers: Registers,
-    interrupt: InterruptController,
+    pub registers: Registers,
+    pub interrupt: InterruptController,
     memory: CpuMemory
 }
 
@@ -32,25 +24,7 @@ impl CPU {
     fn step (&mut self){
         let pc = self.registers.pc();
         let opcode = self.memory.read(pc).unwrap();
-        let cycles = match opcode {
-            0b11_110_011 => {
-                debug!("{:#06X}: {:#04X} | DI", pc, opcode);
-                self.interrupt.master_enable = false;
-                self.registers.inc_pc(1);
-                4
-            },
-            0b11_111_011 => {
-                debug!("{:#06X}: {:#04X} | EI", pc, opcode);
-                self.interrupt.master_enable = true;
-                self.registers.inc_pc(1);
-                4
-            },
-            0b11_011_001 => {
-                self.interrupt.master_enable = true;
-                opcodes::execute(opcode, pc, &mut self.registers, &mut self.memory) as i64
-            }
-            _ => opcodes::execute(opcode, pc, &mut self.registers, &mut self.memory) as i64
-        };
+        opcodes::execute(opcode, pc, self) as i64;
     }
 
     pub fn run(&mut self) {
@@ -69,19 +43,7 @@ impl CPU {
             }
             let pc = self.registers.pc();
             let opcode = self.memory.read(pc).unwrap();
-            wait_cycles += match opcode {
-                0b11_110_011 => {
-                    self.interrupt.master_enable = false;
-                    self.registers.inc_pc(1);
-                    4
-                },
-                0b11_111_011 => {
-                    self.interrupt.master_enable = true;
-                    self.registers.inc_pc(1);
-                    4
-                },
-                _ => opcodes::execute(opcode, pc, &mut self.registers, &mut self.memory) as i64
-            };
+            wait_cycles += opcodes::execute(opcode, pc, self) as i64
         }
     }
 }
@@ -120,38 +82,39 @@ impl CpuMemory {
     }
 
     fn init_memory(&mut self, boot_sequence: bool) {
-        if(!boot_sequence){
-            self.write(0xFF05, 0x00);
-            self.write(0xFF06, 0x00);
-            self.write(0xFF07, 0x00);
-            self.write(0xFF10, 0x80);
-            self.write(0xFF11, 0xBF);
-            self.write(0xFF12, 0xF3);
-            self.write(0xFF14, 0xBF);
-            self.write(0xFF16, 0x3F);
-            self.write(0xFF17, 0x00);
-            self.write(0xFF19, 0xBF);
-            self.write(0xFF1A, 0x7F);
-            self.write(0xFF1B, 0xFF);
-            self.write(0xFF1C, 0x9F);
-            self.write(0xFF1E, 0xBF);
-            self.write(0xFF20, 0xFF);
-            self.write(0xFF21, 0x00);
-            self.write(0xFF22, 0x00);
-            self.write(0xFF23, 0xBF);
-            self.write(0xFF24, 0x77);
-            self.write(0xFF25, 0xF3);
-            self.write(0xFF26, 0xF1);
-            self.write(0xFF40, 0x91);
-            self.write(0xFF42, 0x00);
-            self.write(0xFF43, 0x00);
-            self.write(0xFF45, 0x00);
-            self.write(0xFF47, 0xFC);
-            self.write(0xFF48, 0xFF);
-            self.write(0xFF49, 0xFF);
-            self.write(0xFF4A, 0x00);
-            self.write(0xFF4B, 0x00);
-            self.write(0xFFFF, 0x00);
+        use util::memory_op::write_memory;
+        if !boot_sequence {
+            write_memory(self, 0xFF05, 0x00);
+            write_memory(self, 0xFF06, 0x00);
+            write_memory(self, 0xFF07, 0x00);
+            write_memory(self, 0xFF10, 0x80);
+            write_memory(self, 0xFF11, 0xBF);
+            write_memory(self, 0xFF12, 0xF3);
+            write_memory(self, 0xFF14, 0xBF);
+            write_memory(self, 0xFF16, 0x3F);
+            write_memory(self, 0xFF17, 0x00);
+            write_memory(self, 0xFF19, 0xBF);
+            write_memory(self, 0xFF1A, 0x7F);
+            write_memory(self, 0xFF1B, 0xFF);
+            write_memory(self, 0xFF1C, 0x9F);
+            write_memory(self, 0xFF1E, 0xBF);
+            write_memory(self, 0xFF20, 0xFF);
+            write_memory(self, 0xFF21, 0x00);
+            write_memory(self, 0xFF22, 0x00);
+            write_memory(self, 0xFF23, 0xBF);
+            write_memory(self, 0xFF24, 0x77);
+            write_memory(self, 0xFF25, 0xF3);
+            write_memory(self, 0xFF26, 0xF1);
+            write_memory(self, 0xFF40, 0x91);
+            write_memory(self, 0xFF42, 0x00);
+            write_memory(self, 0xFF43, 0x00);
+            write_memory(self, 0xFF45, 0x00);
+            write_memory(self, 0xFF47, 0xFC);
+            write_memory(self, 0xFF48, 0xFF);
+            write_memory(self, 0xFF49, 0xFF);
+            write_memory(self, 0xFF4A, 0x00);
+            write_memory(self, 0xFF4B, 0x00);
+            write_memory(self, 0xFFFF, 0x00);
         }
     }
 }
