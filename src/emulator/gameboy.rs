@@ -6,6 +6,8 @@ use processor::cpu::CPU;
 use memory::cartridge::Cartridge;
 use gpu::ppu::PixelProcessingUnit;
 use std::time::Instant;
+use std::sync::Mutex;
+use gpu::lcd::LCDFetcher;
 
 const NANO_CYCLE_TIME: i64 = 238;
 
@@ -14,9 +16,9 @@ pub struct Gameboy {
 }
 
 impl Gameboy {
-    pub fn new(lcd: Arc<RwLock<LCD>>, cartridge: Cartridge, boot: bool) -> Gameboy{
+    pub fn new(lcd_fetcher: Arc<Mutex<LCDFetcher>>, cartridge: Cartridge, boot: bool) -> Gameboy{
         let interrupt = InterruptController::new();
-        let cpu = CPU::new(interrupt, cartridge, boot);
+        let cpu = CPU::new(interrupt, cartridge, lcd_fetcher, boot);
         Gameboy{ cpu }
     }
 

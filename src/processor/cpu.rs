@@ -7,6 +7,9 @@ use memory::cartridge::Cartridge;
 use gpu::ppu::PixelProcessingUnit;
 use std::rc::Rc;
 use std::cell::RefCell;
+use gpu::lcd::LCDFetcher;
+use std::sync::Mutex;
+use std::sync::Arc;
 
 pub struct CPU{
     pub registers: Registers,
@@ -21,10 +24,10 @@ pub struct CPU{
 }
 
 impl CPU {
-    pub fn new(interrupt: InterruptController, cartridge: Cartridge, boot_sequence: bool) -> CPU {
+    pub fn new(interrupt: InterruptController, cartridge: Cartridge, lcd_fetcher: Arc<Mutex<LCDFetcher>>, boot_sequence: bool) -> CPU {
         let mut memory = Self::init_memory();
         let io_registers = Memory::new_read_write(&[0u8; 0], 0xFF00, 0xFF7F);
-        let ppu = PixelProcessingUnit::new();
+        let ppu = PixelProcessingUnit::new(lcd_fetcher);
         let cpu_wait_cycles = 0;
         let mut cpu = CPU { registers: Registers::new(boot_sequence), interrupt, memory, io_registers, ppu, cartridge, cpu_wait_cycles };
         cpu.init_boot_state(boot_sequence);

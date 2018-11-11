@@ -33,6 +33,8 @@ use simplelog::TestLogger;
 use simplelog::LevelFilter;
 use simplelog::Config;
 use simplelog::WriteLogger;
+use gpu::lcd::LCDFetcher;
+use std::sync::Mutex;
 
 
 fn main() {
@@ -40,13 +42,16 @@ fn main() {
     setup_logging(&filename);
     let mut file = File::open(filename).expect("file not found");
     let cartridge = Cartridge::new(read_game(&mut file));
-    let lcd = Arc::new(RwLock::new(LCD::new()));
-    let cpu_lcd = lcd.clone();
-    let mut gameboy = Gameboy::new(cpu_lcd, cartridge, boot);
+    let lcd = Arc::new(Mutex::new(LCDFetcher::new()));
+    let lcd_fetcher = lcd.clone();
+    let handle = thread::spawn(move || {
+        let mut gameboy = Gameboy::new(lcd_fetcher, cartridge, boot);
+        gameboy.run();
+    });
 
-    gameboy.run();
-    //let window = create_window();
-    //renderer.run();
+    let window = create_window();
+    let mut renderer = Renderer::new(window, lcd);
+    renderer.run();
 }
 
 fn read_game(file: &mut File) -> Vec<u8>{

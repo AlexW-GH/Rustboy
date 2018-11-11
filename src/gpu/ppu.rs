@@ -2,6 +2,9 @@ use memory::memory::Memory;
 use memory::memory::MapsMemory;
 use util;
 use gpu::lcd::LCD;
+use gpu::lcd::LCDFetcher;
+use std::sync::Mutex;
+use std::sync::Arc;
 
 // LCD Control Register
 const LCDC_REGISTER: u16 = 0xFF40;
@@ -49,11 +52,11 @@ pub struct PixelProcessingUnit{
 }
 
 impl PixelProcessingUnit {
-    pub fn new() -> PixelProcessingUnit{
+    pub fn new(lcd_fetcher: Arc<Mutex<LCDFetcher>>) -> PixelProcessingUnit{
         let mut memory = Memory::new_read_write(&[0u8; 0], 0x8000, 0x9FFF);
         let oam = Memory::new_read_write(&[0u8; 0], 0xFE00, 0xFE9F);
 
-        let lcd = LCD::new();
+        let lcd = LCD::new(lcd_fetcher);
         let pixel_fifo = PixelFifo::new();
         let fetcher = Fetcher::new();
         let current_tick = 0;
@@ -110,6 +113,7 @@ impl PixelProcessingUnit {
                 self.fetcher.fetch_tile(current_tile, lcd_control_register, &mut self.pixel_fifo, &self.memory );
             } else if line == 144 {
                 //Todo: VBLANK!
+                self.lcd.display();
             }
 
         }
