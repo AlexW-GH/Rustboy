@@ -41,8 +41,7 @@ impl Renderer {
 
     pub fn run(&mut self) {
         while let Some(e) = self.window.next() {
-            let img = self.lcd.lock().unwrap().image().clone();
-            let img = imageops::resize(&img, self.window_width, self.window_height, FilterType::Nearest);
+            let img = imageops::resize(self.lcd.lock().unwrap().image(), self.window_width, self.window_height, FilterType::Nearest);
             let img: G2dTexture = Texture::from_image(
                 &mut self.window.factory,
                 &img,
