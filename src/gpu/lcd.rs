@@ -15,9 +15,22 @@ pub struct LCD{
 impl LCD{
     pub fn new() -> LCD{
         let image =ImageBuffer::from_fn(HOR_PIXELS, VER_PIXELS, |_, _| {
-            Rgba([200u8; 4])
+            Rgba([255u8; 4])
         });
         LCD{image}
+    }
+
+    pub fn set_pixel(&mut self, x: u32, y: u32, color: u8){
+        //Todo: correct colors
+
+        let pixel = match color {
+            0b00 => Rgba([255u8; 4]),
+            0b01 => Rgba([180u8; 4]),
+            0b10 => Rgba([90u8; 4]),
+            0b11 => Rgba([0u8; 4]),
+            _ => panic!("That's not a color"),
+        };
+        self.image.put_pixel(x, y, pixel)
     }
 
     pub fn image(&self) -> &ImageBuffer<Rgba<u8>, Vec<u8>>{

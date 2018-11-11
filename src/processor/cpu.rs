@@ -5,12 +5,15 @@ use processor::opcodes;
 use memory::memory::{Memory, MapsMemory};
 use memory::cartridge::Cartridge;
 use gpu::ppu::PixelProcessingUnit;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 pub struct CPU{
     pub registers: Registers,
     pub interrupt: InterruptController,
 
     memory: Vec<Memory>,
+    io_registers: Memory,
     ppu: PixelProcessingUnit,
     cartridge: Cartridge,
 
@@ -18,16 +21,21 @@ pub struct CPU{
 }
 
 impl CPU {
-    pub fn new(interrupt: InterruptController, cartridge: Cartridge, ppu: PixelProcessingUnit, boot_sequence: bool) -> CPU {
+    pub fn new(interrupt: InterruptController, cartridge: Cartridge, boot_sequence: bool) -> CPU {
         let mut memory = Self::init_memory();
+        let io_registers = Memory::new_read_write(&[0u8; 0], 0xFF00, 0xFF7F);
+        let ppu = PixelProcessingUnit::new();
         let cpu_wait_cycles = 0;
-        let mut cpu = CPU { registers: Registers::new(boot_sequence), interrupt, memory, ppu, cartridge, cpu_wait_cycles };
+        let mut cpu = CPU { registers: Registers::new(boot_sequence), interrupt, memory, io_registers, ppu, cartridge, cpu_wait_cycles };
         cpu.init_boot_state(boot_sequence);
         cpu
     }
 
     pub fn step (&mut self){
-        self.ppu.step();
+        {
+            let io_registers = &mut self.io_registers;
+            self.ppu.step(io_registers);
+        }
         if self.cpu_wait_cycles <= 0 {
             let pc = self.registers.pc();
             let opcode = self.read(pc).unwrap();
@@ -40,7 +48,6 @@ impl CPU {
         let mut memory = Vec::new();
         memory.push(Memory::new_read_write(&[0u8; 0], 0xC000, 0xDFFF));
         memory.push(Memory::new_read_write(&[0u8; 0], 0xE000, 0xFDFF));
-        memory.push(Memory::new_read_write(&[0u8; 0], 0xFF00, 0xFF7F));
         memory.push(Memory::new_read_write(&[0u8; 0], 0xFF80, 0xFFFE));
         memory.push(Memory::new_read_write(&[0u8; 0], 0xFFFF, 0xFFFF));
         memory
@@ -95,6 +102,8 @@ impl MapsMemory for CPU {
                 self.ppu.read(address)
             } else if self.cartridge.is_in_range(address){
                 self.cartridge.read(address)
+            } else if self.io_registers.is_in_range(address) {
+                self.io_registers.read(address)
             } else {
                 Err(())
             }
@@ -123,6 +132,8 @@ impl MapsMemory for CPU {
                 self.ppu.write(address, value)
             } else if self.cartridge.is_in_range(address){
                 self.cartridge.write(address, value)
+            } else if self.io_registers.is_in_range(address) {
+                self.io_registers.write(address, value)
             } else {
                 Err(())
             }
@@ -167,8 +178,7 @@ mod tests {
         let interrupt = InterruptController::new();
         let rom = add_header(rom);
         let cartridge = Cartridge::new(rom);
-        let ppu = PixelProcessingUnit::new();
-        let mut cpu = CPU::new(interrupt, cartridge, ppu, false);
+        let mut cpu = CPU::new(interrupt, cartridge, false);
         cpu.registers.set_pc(0);
         cpu.registers.set_f(0x0);
         cpu

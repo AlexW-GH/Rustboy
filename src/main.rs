@@ -1,4 +1,5 @@
 #![feature(duration_as_u128)]
+#![feature(exclusive_range_pattern)]
 
 #[macro_use]
 extern crate log;
@@ -28,6 +29,10 @@ use gpu::lcd::LCD;
 use emulator::gameboy::Gameboy;
 use emulator::renderer::Renderer;
 use gpu::ppu::PixelProcessingUnit;
+use simplelog::TestLogger;
+use simplelog::LevelFilter;
+use simplelog::Config;
+use simplelog::WriteLogger;
 
 
 fn main() {
@@ -35,16 +40,13 @@ fn main() {
     setup_logging(&filename);
     let mut file = File::open(filename).expect("file not found");
     let cartridge = Cartridge::new(read_game(&mut file));
-    let ppu = PixelProcessingUnit::new();
     let lcd = Arc::new(RwLock::new(LCD::new()));
     let cpu_lcd = lcd.clone();
-    let mut gameboy = Gameboy::new(cpu_lcd, cartridge, ppu, boot);
-    thread::spawn(move || {
-        gameboy.run();
-    });
-    let window = create_window();
-    let mut renderer = Renderer::new(window, lcd);
-    renderer.run();
+    let mut gameboy = Gameboy::new(cpu_lcd, cartridge, boot);
+
+    gameboy.run();
+    //let window = create_window();
+    //renderer.run();
 }
 
 fn read_game(file: &mut File) -> Vec<u8>{

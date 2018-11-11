@@ -14,9 +14,9 @@ pub struct Gameboy {
 }
 
 impl Gameboy {
-    pub fn new(lcd: Arc<RwLock<LCD>>, cartridge: Cartridge, ppu: PixelProcessingUnit, boot: bool) -> Gameboy{
+    pub fn new(lcd: Arc<RwLock<LCD>>, cartridge: Cartridge, boot: bool) -> Gameboy{
         let interrupt = InterruptController::new();
-        let cpu = CPU::new(interrupt, cartridge, ppu, boot);
+        let cpu = CPU::new(interrupt, cartridge, boot);
         Gameboy{ cpu }
     }
 
