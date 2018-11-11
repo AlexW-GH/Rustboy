@@ -25,7 +25,7 @@ impl LCD{
 
     pub fn set_pixel(&mut self, x: u32, y: u32, color: u8){
         //Todo: correct colors
-
+        println!("put color {:02b} @ {},{}", color, x, y);
         let pixel = match color {
             0b00 => Rgba([255u8; 4]),
             0b01 => Rgba([180u8; 4]),

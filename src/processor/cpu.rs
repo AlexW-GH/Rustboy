@@ -37,7 +37,8 @@ impl CPU {
     pub fn step (&mut self){
         {
             let io_registers = &mut self.io_registers;
-            self.ppu.step(io_registers);
+            let interrupt = &mut self.interrupt;
+            self.ppu.step(io_registers, interrupt);
         }
         if self.cpu_wait_cycles <= 0 {
             let pc = self.registers.pc();
@@ -172,6 +173,8 @@ mod tests {
     use gpu::ppu::PixelProcessingUnit;
     use memory::memory::MapsMemory;
     use util::memory_op::*;
+    use gpu::lcd::LCDFetcher;
+    use std::sync::Mutex;
 
     fn create_cpu(rom: Vec<u8>) -> CPU {
         let logger = TestLogger::init(LevelFilter::Debug, Config::default());
@@ -181,7 +184,8 @@ mod tests {
         let interrupt = InterruptController::new();
         let rom = add_header(rom);
         let cartridge = Cartridge::new(rom);
-        let mut cpu = CPU::new(interrupt, cartridge, false);
+        let lcd_fetcher = Arc::new(Mutex::new(LCDFetcher::new()));
+        let mut cpu = CPU::new(interrupt, cartridge, lcd_fetcher, false);
         cpu.registers.set_pc(0);
         cpu.registers.set_f(0x0);
         cpu
