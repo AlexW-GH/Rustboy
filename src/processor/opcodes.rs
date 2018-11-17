@@ -373,7 +373,7 @@ fn ldhl_sp_e(opcode: u8, _: u16, cpu: &mut CPU) -> u8{
     let sp = cpu.registers.sp();
     let value = memory_op::read_memory_following_u8(cpu, pc);
     debug!("{:#06X}: {:#04X} | LDHL {:?}, {:?}", pc, opcode, RegisterDD::SP, value);
-    cpu.registers.set_flags_add_u16(sp, value as u16, Clear, Clear, Calculate, Calculate);
+    cpu.registers.set_flags_add_u16(sp, value as u16, 0, Clear, Clear, Calculate, Calculate);
     cpu.registers.set_hl(sp.wrapping_add(value as i8 as u16));
     cpu.registers.inc_pc(2);
     12
@@ -408,7 +408,7 @@ fn add_a_r(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let val_r = cpu.registers.read_r(register);
     debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), {:?}({:?})", pc, opcode, RegisterR::A, val_a, register, val_r);
     let result = val_a.wrapping_add(val_r);
-    cpu.registers.set_flags_add(val_a, val_r, Calculate, Clear, Calculate, Calculate);
+    cpu.registers.set_flags_add(val_a, val_r, 0, Calculate, Clear, Calculate, Calculate);
     cpu.registers.set_a(result);
     cpu.registers.inc_pc(1);
     4
@@ -423,7 +423,7 @@ fn add_a_n(opcode: u8, _: u16, cpu: &mut CPU) -> u8{
     let val_n = memory_op::read_memory_following_u8(cpu, pc);
     debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
     let result = val_a.wrapping_add(val_n);
-    cpu.registers.set_flags_add(val_a, val_n, Calculate, Clear, Calculate, Calculate);
+    cpu.registers.set_flags_add(val_a, val_n, 0, Calculate, Clear, Calculate, Calculate);
     cpu.registers.set_a(result);
     cpu.registers.inc_pc(2);
     8
@@ -437,7 +437,7 @@ fn add_a_mhl(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let val_hl = memory_op::read_memory(cpu, hl);
     debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
     let result = val_a.wrapping_add(val_hl);
-    cpu.registers.set_flags_add(val_a, val_hl, Calculate, Clear, Calculate, Calculate);
+    cpu.registers.set_flags_add(val_a, val_hl, 0, Calculate, Clear, Calculate, Calculate);
     cpu.registers.set_a(result);
     cpu.registers.inc_pc(1);
     8
@@ -452,7 +452,7 @@ fn adc_a_r(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let cy_flag = cpu.registers.flag_cy();
     debug!("{:#06X}: {:#04X} | ADC  {:?}({:?}), {:?}({:?})", pc, opcode, RegisterR::A, val_a, register, val_r);
     let result = val_a.wrapping_add(val_r).wrapping_add(cy_flag);
-    cpu.registers.set_flags_add_with_carry(val_a, val_r, Calculate, Clear, Calculate, Calculate);
+    cpu.registers.set_flags_add(val_a, val_r, cy_flag, Calculate, Clear, Calculate, Calculate);
     cpu.registers.set_a(result);
     cpu.registers.inc_pc(1);
     4
@@ -468,7 +468,7 @@ fn adc_a_n(opcode: u8, _: u16, cpu: &mut CPU) -> u8{
     let cy_flag = cpu.registers.flag_cy();
     debug!("{:#06X}: {:#04X} | ADC  {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
     let result = val_a.wrapping_add(val_n).wrapping_add(cy_flag);
-    cpu.registers.set_flags_add_with_carry(val_a, val_n, Calculate, Clear, Calculate, Calculate);
+    cpu.registers.set_flags_add(val_a, val_n, cy_flag, Calculate, Clear, Calculate, Calculate);
     cpu.registers.set_a(result);
     cpu.registers.inc_pc(2);
     8
@@ -483,7 +483,7 @@ fn adc_a_mhl(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let cy_flag = cpu.registers.flag_cy();
     debug!("{:#06X}: {:#04X} | ADC  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
     let result = val_a.wrapping_add(val_hl).wrapping_add(cy_flag);
-    cpu.registers.set_flags_add_with_carry(val_a, val_hl, Calculate, Clear, Calculate, Calculate);
+    cpu.registers.set_flags_add(val_a, val_hl, cy_flag, Calculate, Clear, Calculate, Calculate);
     cpu.registers.set_a(result);
     cpu.registers.inc_pc(1);
     8
@@ -497,7 +497,7 @@ fn sub_a_r(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let val_r = cpu.registers.read_r(register);
     debug!("{:#06X}: {:#04X} | SUB  {:?}({:?}), {:?}({:?})", pc, opcode, RegisterR::A, val_a, register, val_r);
     let result = val_a.wrapping_sub(val_r);
-    cpu.registers.set_flags_sub(val_a, val_r, Calculate, Set, Calculate, Calculate);
+    cpu.registers.set_flags_sub(val_a, val_r, 0, Calculate, Set, Calculate, Calculate);
     cpu.registers.set_a(result);
     cpu.registers.inc_pc(1);
     4
@@ -512,7 +512,7 @@ fn sub_a_n(opcode: u8, _: u16, cpu: &mut CPU) -> u8{
     let val_n = memory_op::read_memory_following_u8(cpu, pc);
     debug!("{:#06X}: {:#04X} | SUB  {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
     let result = val_a.wrapping_sub(val_n);
-    cpu.registers.set_flags_sub(val_a, val_n, Calculate, Set, Calculate, Calculate);
+    cpu.registers.set_flags_sub(val_a, val_n, 0, Calculate, Set, Calculate, Calculate);
     cpu.registers.set_a(result);
     cpu.registers.inc_pc(2);
     8
@@ -526,7 +526,7 @@ fn sub_a_mhl(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let val_hl = memory_op::read_memory(cpu, hl);
     debug!("{:#06X}: {:#04X} | SUB  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
     let result = val_a.wrapping_sub(val_hl);
-    cpu.registers.set_flags_sub(val_a, val_hl, Calculate, Set, Calculate, Calculate);
+    cpu.registers.set_flags_sub(val_a, val_hl, 0, Calculate, Set, Calculate, Calculate);
     cpu.registers.set_a(result);
     cpu.registers.inc_pc(1);
     8
@@ -541,7 +541,7 @@ fn sbc_a_r(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let cy_flag = cpu.registers.flag_cy();
     debug!("{:#06X}: {:#04X} | SBC  {:?}({:?}), {:?}({:?})", pc, opcode, RegisterR::A, val_a, register, val_r);
     let result = val_a.wrapping_sub(val_r).wrapping_sub(cy_flag);
-    cpu.registers.set_flags_sub_with_carry(val_a, val_r, Calculate, Set, Calculate, Calculate);
+    cpu.registers.set_flags_sub(val_a, val_r, cy_flag, Calculate, Set, Calculate, Calculate);
     cpu.registers.set_a(result);
     cpu.registers.inc_pc(1);
     4
@@ -557,7 +557,7 @@ fn sbc_a_n(opcode: u8, _: u16, cpu: &mut CPU) -> u8{
     let cy_flag = cpu.registers.flag_cy();
     debug!("{:#06X}: {:#04X} | SBC  {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
     let result = val_a.wrapping_sub(val_n).wrapping_sub(cy_flag);
-    cpu.registers.set_flags_sub_with_carry(val_a, val_n, Calculate, Set, Calculate, Calculate);
+    cpu.registers.set_flags_sub(val_a, val_n, cy_flag, Calculate, Set, Calculate, Calculate);
     cpu.registers.set_a(result);
     cpu.registers.inc_pc(2);
     8
@@ -572,7 +572,7 @@ fn sbc_a_mhl(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let cy_flag = cpu.registers.flag_cy();
     debug!("{:#06X}: {:#04X} | SBC  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
     let result = val_a.wrapping_sub(val_hl).wrapping_sub(cy_flag);
-    cpu.registers.set_flags_sub_with_carry(val_a, val_hl, Calculate, Set, Calculate, Calculate);
+    cpu.registers.set_flags_sub(val_a, val_hl, cy_flag, Calculate, Set, Calculate, Calculate);
     cpu.registers.set_a(result);
     cpu.registers.inc_pc(1);
     8
@@ -716,7 +716,7 @@ fn cp_r(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let val_a = cpu.registers.a();
     let val_r = cpu.registers.read_r(register);
     debug!("{:#06X}: {:#04X} | CP   {:?}({:?}), {:?}({:?})", pc, opcode, RegisterR::A, val_a, register, val_r);
-    cpu.registers.set_flags_sub(val_a, val_r, Calculate, Set, Calculate, Calculate);
+    cpu.registers.set_flags_sub(val_a, val_r, 0, Calculate, Set, Calculate, Calculate);
     cpu.registers.inc_pc(1);
     4
 }
@@ -729,7 +729,7 @@ fn cp_n(opcode: u8, _: u16, cpu: &mut CPU) -> u8{
     let val_a = cpu.registers.a();
     let val_n = memory_op::read_memory_following_u8(cpu, pc);
     debug!("{:#06X}: {:#04X} | CP   {:?}({:?}), ({:?})", pc, opcode, RegisterR::A, val_a, val_n);
-    cpu.registers.set_flags_sub(val_a, val_n, Calculate, Set, Calculate, Calculate);
+    cpu.registers.set_flags_sub(val_a, val_n, 0, Calculate, Set, Calculate, Calculate);
     cpu.registers.inc_pc(2);
     8
 }
@@ -741,7 +741,7 @@ fn cp_mhl(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let val_a = cpu.registers.a();
     let val_hl = memory_op::read_memory(cpu, hl);
     debug!("{:#06X}: {:#04X} | SUB  {:?}({:?}), {:?}{:#06x}({:?})", pc, opcode, RegisterR::A, val_a, RegisterDD::HL, hl, val_hl);
-    cpu.registers.set_flags_sub(val_a, val_hl, Calculate, Set, Calculate, Calculate);
+    cpu.registers.set_flags_sub(val_a, val_hl, 0, Calculate, Set, Calculate, Calculate);
     cpu.registers.inc_pc(1);
     8
 }
@@ -752,7 +752,7 @@ fn inc_r(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let register = RegisterR::new((opcode >> 3) & 0b111);
     let value = cpu.registers.read_r(register);
     debug!("{:#06X}: {:#04X} | INC  {:?}({:?})", pc, opcode, register, value);
-    cpu.registers.set_flags_add(value, 1,
+    cpu.registers.set_flags_add(value, 1, 0,
                                  Calculate, Clear, Calculate, Ignore);
     cpu.registers.write_r(register, value.wrapping_add(1));
     cpu.registers.inc_pc(1);
@@ -766,7 +766,7 @@ fn inc_mhl(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let value = memory_op::read_memory(cpu, address);
     memory_op::write_memory(cpu,  address, value.wrapping_add(1));
     debug!("{:#06X}: {:#04X} | INC  {:?}{:#06x}({:?})", pc, opcode, RegisterDD::HL, address, value);
-    cpu.registers.set_flags_add(value, 1,
+    cpu.registers.set_flags_add(value, 1, 0,
                                  Calculate, Clear, Calculate, Ignore);
     cpu.registers.inc_pc(1);
     12
@@ -778,7 +778,7 @@ fn dec_r(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let register = RegisterR::new((opcode >> 3) & 0b111);
     let value = cpu.registers.read_r(register);
     debug!("{:#06X}: {:#04X} | DEC  {:?}({:?})", pc, opcode, register, value);
-    cpu.registers.set_flags_sub(value, 1,
+    cpu.registers.set_flags_sub(value, 1, 0,
                                  Calculate, Set, Calculate, Ignore);
     cpu.registers.write_r(register, value.wrapping_sub(1));
     cpu.registers.inc_pc(1);
@@ -792,7 +792,7 @@ fn dec_mhl(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let value = memory_op::read_memory(cpu, address);
     memory_op::write_memory(cpu,  address, value.wrapping_sub(1));
     debug!("{:#06X}: {:#04X} | DEC  {:?}[{:#06x}]({:?})", pc, opcode, RegisterDD::HL, address, value);
-    cpu.registers.set_flags_sub(value, 1,
+    cpu.registers.set_flags_sub(value, 1, 0,
                                  Calculate, Set, Calculate, Ignore);
     cpu.registers.inc_pc(1);
     12
@@ -810,7 +810,7 @@ fn add_hl_ss(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let reg_hl_value = cpu.registers.hl();
     debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), {:?}({:?})", pc, opcode, RegisterSS::HL, reg_hl_value, register, value);
     let result = reg_hl_value.wrapping_add(value);
-    cpu.registers.set_flags_add_u16(reg_hl_value, value as u16, Ignore, Clear, Calculate, Calculate);
+    cpu.registers.set_flags_add_u16(reg_hl_value, value as u16, 0, Ignore, Clear, Calculate, Calculate);
     cpu.registers.set_hl(result);
     cpu.registers.inc_pc(1);
     8
@@ -825,7 +825,7 @@ fn add_sp_e(opcode: u8, _: u16, cpu: &mut CPU) -> u8{
     let val_n = memory_op::read_memory_following_u8(cpu, pc);
     debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), ({:?})", pc, opcode, RegisterSS::SP, val_sp, val_n);
     let result = add_signed(val_sp, val_n);
-    cpu.registers.set_flags_add_u16(val_sp, val_n as u16, Clear, Clear, Calculate, Calculate);
+    cpu.registers.set_flags_add_u16(val_sp, val_n as u16, 0, Clear, Clear, Calculate, Calculate);
     cpu.registers.set_sp(result);
     cpu.registers.inc_pc(2);
     16
@@ -837,7 +837,7 @@ fn inc_ss(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let register = RegisterSS::new((opcode >> 4) & 0b11);
     let value = cpu.registers.read_ss(register);
     debug!("{:#06X}: {:#04X} | INC  {:?}({:?})", pc, opcode, register, value);
-    cpu.registers.set_flags_add_u16(value, 1,
+    cpu.registers.set_flags_add_u16(value, 1, 0,
                                      Ignore, Ignore, Ignore, Ignore);
     cpu.registers.write_ss(register, value.wrapping_add(1));
     cpu.registers.inc_pc(1);
@@ -850,7 +850,7 @@ fn dec_ss(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let register = RegisterSS::new((opcode >> 4) & 0b11);
     let value = cpu.registers.read_ss(register);
     debug!("{:#06X}: {:#04X} | DEC  {:?}({:?})", pc, opcode, register, value);
-    cpu.registers.set_flags_sub_u16(value, 1,
+    cpu.registers.set_flags_sub_u16(value, 1, 0,
                                      Ignore, Ignore, Ignore, Ignore);
     cpu.registers.write_ss(register, value.wrapping_sub(1));
     cpu.registers.inc_pc(1);
