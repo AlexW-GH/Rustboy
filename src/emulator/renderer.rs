@@ -41,15 +41,23 @@ impl Renderer {
 
     pub fn run(&mut self) {
         while let Some(e) = self.window.next() {
-            let img = imageops::resize(self.lcd.lock().unwrap().image(), self.window_width, self.window_height, FilterType::Nearest);
-            let img: G2dTexture = Texture::from_image(
-                &mut self.window.factory,
-                &img,
-                &TextureSettings::new()).unwrap();
-            self.window.draw_2d(&e, |c, g| {
-                clear([0.0, 0.0, 0.0, 0.0], g);
-                image(&img, c.transform, g);
-            });
+            match e {
+                Event::Loop(loop_event) => match loop_event {
+                    Loop::Render(r) => {
+                        let img = imageops::resize(self.lcd.lock().unwrap().image(), self.window_width, self.window_height, FilterType::Lanczos3);
+                        let img: G2dTexture = Texture::from_image(
+                            &mut self.window.factory,
+                            &img,
+                            &TextureSettings::new()).unwrap();
+                        self.window.draw_2d(&e, |c, g| {
+                            clear([1.0, 0.0, 0.0, 1.0], g);
+                            image(&img, c.transform, g);
+                        });
+                    },
+                    _ => ()
+                },
+                _ => ()
+            }
         }
     }
 

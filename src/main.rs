@@ -52,6 +52,7 @@ fn main() {
     let window = create_window();
     let mut renderer = Renderer::new(window, lcd);
     renderer.run();
+    handle.join();
 }
 
 fn read_game(file: &mut File) -> Vec<u8>{
@@ -86,7 +87,7 @@ fn setup_logging(file_name: &str){
 }
 
 fn create_window() -> PistonWindow{
-    WindowSettings::new("Rustboy", (emulator::renderer::HOR_PIXELS*2, emulator::renderer::VER_PIXELS*2))
+    WindowSettings::new("Rustboy", (emulator::renderer::HOR_PIXELS*3, emulator::renderer::VER_PIXELS*3))
         .exit_on_esc(true)
         .resizable(false)
         .build()

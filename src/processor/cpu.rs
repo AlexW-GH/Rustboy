@@ -43,7 +43,7 @@ impl CPU {
         if self.cpu_wait_cycles <= 0 {
             let pc = self.registers.pc();
             let opcode = self.read(pc).unwrap();
-            self.cpu_wait_cycles = opcodes::execute(opcode, pc, self) as i64;
+            self.cpu_wait_cycles += opcodes::execute(opcode, pc, self) as i64;
         }
         self.cpu_wait_cycles -= 1;
     }
@@ -118,10 +118,6 @@ impl MapsMemory for CPU {
     }
 
     fn write(&mut self, address: u16, value: u8) -> Result<(), ()>{
-        if address == 0xFF02 && value == 0x81 {
-            let output = self.read(0xFF01).unwrap();
-            print!("{}", output as char);
-        }
         let write = self.memory.iter_mut()
             .find(|mem| mem.is_in_range(address))
             .map( |mem| mem.write(address, value))

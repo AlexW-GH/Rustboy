@@ -25,12 +25,12 @@ impl LCD{
 
     pub fn set_pixel(&mut self, x: u32, y: u32, color: u8){
         //Todo: correct colors
-        //println!("put color {:02b} @ {},{}", color, x, y);
+        //println!("Color: {} @ {},{}", color, x, y);
         let pixel = match color {
-            0b00 => Rgba([255u8; 4]),
-            0b01 => Rgba([180u8; 4]),
-            0b10 => Rgba([90u8; 4]),
-            0b11 => Rgba([0u8; 4]),
+            0b00 => Rgba([255u8, 255u8, 255u8, 255u8]),
+            0b01 => Rgba([180u8, 180u8, 180u8, 255u8]),
+            0b10 => Rgba([90u8, 90u8, 90u8, 255u8]),
+            0b11 => Rgba([0u8, 0u8, 0u8, 255u8]),
             _ => panic!("That's not a color"),
         };
         self.image.put_pixel(x, y, pixel)
