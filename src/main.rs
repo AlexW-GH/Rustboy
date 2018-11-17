@@ -40,12 +40,16 @@ use std::sync::Mutex;
 fn main() {
     let (filename, boot) = retrieve_options();
     setup_logging(&filename);
-    let mut file = File::open(filename).expect("file not found");
-    let cartridge = Cartridge::new(read_game(&mut file));
+    let mut rom = File::open(filename).expect("file not found");
+    let cartridge = Cartridge::new(read_game(&mut rom));
+    let boot_rom = match File::open( "assets/boot.gb1"){
+        Ok(mut boot_file) => Option::Some(read_game(&mut boot_file)),
+        Err(_) => Option::None
+    };
     let lcd = Arc::new(Mutex::new(LCDFetcher::new()));
     let lcd_fetcher = lcd.clone();
     let handle = thread::spawn(move || {
-        let mut gameboy = Gameboy::new(lcd_fetcher, cartridge, boot);
+        let mut gameboy = Gameboy::new(lcd_fetcher, cartridge, boot_rom);
         gameboy.run();
     });
 

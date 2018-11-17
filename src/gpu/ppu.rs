@@ -71,10 +71,10 @@ impl PixelProcessingUnit {
     }
 
     pub fn step(&mut self, io_registers: &mut Memory, interrupt: &mut InterruptController){
-        if self.current_tick % TICKS_PER_LINE == 0 {
+        if self.current_tick % TICKS_PER_LINE as usize == 0 {
             self.current_pixel = 0;
         }
-        match self.current_tick % TICKS_PER_LINE {
+        match self.current_tick % TICKS_PER_LINE as usize {
             0 .. OAM_SEARCH_TICKS => self.oam_search(io_registers),
             OAM_SEARCH_TICKS ..TICKS_PER_LINE => self.pixel_transfer(io_registers),
             _ => ()
@@ -92,22 +92,29 @@ impl PixelProcessingUnit {
     }
 
     pub fn pixel_transfer(&mut self, io_registers: &mut Memory){
-        let line = self.current_tick / TICKS_PER_LINE;
-        if line < 144 {
+
+        let mut line =  io_registers.read(LY_REGISTER).unwrap();
+        if (line as usize) < LINES_TO_DRAW {
             if self.current_pixel == 160 {
                 //Todo: HBLANK!
                 self.current_pixel += 1;
             } else if self.current_pixel < 160{
-                let lcd_control_register = io_registers.read(LCDC_REGISTER).unwrap();
                 if self.current_tick % 2 == 1 {
-                    self.fetcher.fetch_tile(lcd_control_register, &mut self.pixel_fifo, &self.memory);
+                    self.fetcher.fetch_tile(&mut self.pixel_fifo, &self.memory, io_registers);
                 }
 
                 self.current_pixel += self.pixel_fifo.write_pixel(&mut self.lcd, self.current_pixel as u32, line as u32);
             }
-        } else if line == 144 {
-            //Todo: VBLANK!
-            self.lcd.display();
+        } else {
+            if line as usize == LINES_TO_DRAW {
+                //Todo: VBLANK!
+                self.lcd.display();
+            }
+            if line as usize >= LINES_PER_CYCLE {
+                io_registers.write(LY_REGISTER, 0).unwrap();
+            } else {
+                io_registers.write(LY_REGISTER, line+1).unwrap();
+            }
         }
     }
 }
@@ -182,7 +189,6 @@ struct Fetcher {
     current_step: FetcherStep,
     current_tile_number: u16,
     next_tile: u16,
-    line: u16,
     fetched_color: u16,
     fetched_palette: u16,
 }
@@ -207,41 +213,46 @@ impl FetcherStep{
 
 impl Fetcher{
     pub fn new() -> Fetcher {
-        Fetcher {current_step: FetcherStep::ReadTile, current_tile_number: 0, next_tile: 0, line: 0, fetched_color: 0, fetched_palette: 0}
+        Fetcher {current_step: FetcherStep::ReadTile, current_tile_number: 0, next_tile: 0, fetched_color: 0, fetched_palette: 0}
     }
 
-    pub fn fetch_tile(&mut self, lcd_control_register: u8, pixel_fifo: &mut PixelFifo, vram: &Memory) {
+    pub fn fetch_tile(&mut self, pixel_fifo: &mut PixelFifo, vram: &Memory, io_registers: &mut Memory) {
         match self.current_step{
-            FetcherStep::ReadTile => self.read_tile(lcd_control_register, vram),
-            FetcherStep::ReadData0 => self.read_data0(lcd_control_register, vram),
-            FetcherStep::ReadData1 => self.read_tile1(lcd_control_register, pixel_fifo, vram),
+            FetcherStep::ReadTile => self.read_tile(vram, io_registers),
+            FetcherStep::ReadData0 => self.read_data0(vram, io_registers),
+            FetcherStep::ReadData1 => self.read_tile1(pixel_fifo, vram, io_registers),
             FetcherStep::WriteData => self.write_data(pixel_fifo),
         }
     }
 
-    fn read_tile(&mut self, lcd_control_register: u8, vram: &Memory) {
+    fn read_tile(&mut self, vram: &Memory, io_registers: &mut Memory) {
+        let lcd_control_register = io_registers.read(LCDC_REGISTER).unwrap();
         let bg_map_address = if (lcd_control_register >> 3) & 1 == 0 { 0x9800 } else { 0x9C00 };
+        let mut line =  io_registers.read(LY_REGISTER).unwrap();
         let mut tile = if self.next_tile % TILES_IN_LINES == 0 && self.next_tile != 0 {
             self.next_tile = self.next_tile - TILES_IN_LINES;
-            self.line += 1;
+            line += 1;
+            io_registers.write(LY_REGISTER, line).unwrap();
         };
         if self.next_tile >= MAX_TILES{
             self.next_tile = 0;
         }
-        if self.line >= LINES_TO_DRAW as u16{
-            self.line = 0;
-        }
-        let tile_map_address = bg_map_address + self.next_tile + ((self.line / 8) * 0x20);
+        let scx = io_registers.read((SCX_REGISTER)).unwrap() as u16;
+        let scy = io_registers.read((SCY_REGISTER)).unwrap();
+        let tile_map_address = bg_map_address + self.next_tile + ((line.wrapping_add(scy) / 8) as u16) * 0x20;
+        //println!("scy: {:#06x} | bg_map_address: {:#06x} | next_tile: {:#06x} | line: {} | tile_map_address: {:#06x}", scy, bg_map_address, self.next_tile, ((line.wrapping_add(scy) / 8) as u16), tile_map_address);
         self.current_tile_number = vram.read(tile_map_address).unwrap() as u16;
         self.next_tile = (self.next_tile +1);
         self.current_step = self.current_step.next();
     }
 
     //TODO: completly broken, fix pls
-    fn read_data0(&mut self, lcd_control_register: u8, vram: &Memory) {
+    fn read_data0(&mut self, vram: &Memory, io_registers: &mut Memory) {
+        let lcd_control_register = io_registers.read(LCDC_REGISTER).unwrap();
+        let mut line =  io_registers.read(LY_REGISTER).unwrap() as u16;
         let bg_tiles_address = if (lcd_control_register >> 4) & 1 == 1 { 0x8000 } else { 0x9000 };
         if bg_tiles_address == 0x8000 {
-            self.fetched_color = (vram.read(0x8000 + ((self.line%8) * 0x2) + (self.current_tile_number as u16 * 0x10)).unwrap() as u16) << 8;
+            self.fetched_color = (vram.read(0x8000 + ((line % 8) * 0x2) + (self.current_tile_number * 0x10) as u16).unwrap() as u16) << 8;
         } else if bg_tiles_address == 0x9000 {
             // Todo: Recheck later
             let mapped_tile = self.current_tile_number as i32;
@@ -251,10 +262,12 @@ impl Fetcher{
         self.current_step = self.current_step.next();
     }
 
-    fn read_tile1(&mut self, lcd_control_register: u8, pixel_fifo: &mut PixelFifo, vram: &Memory) {
+    fn read_tile1(&mut self, pixel_fifo: &mut PixelFifo, vram: &Memory, io_registers: &mut Memory) {
+        let lcd_control_register = io_registers.read(LCDC_REGISTER).unwrap();
+        let mut line =  io_registers.read(LY_REGISTER).unwrap() as u16;
         let bg_tiles_address = if (lcd_control_register >> 4) & 1 == 1 { 0x8000 } else { 0x9000 };
         if bg_tiles_address == 0x8000 {
-            self.fetched_color = (vram.read(0x8001 + ((self.line%8) * 0x2) + (self.current_tile_number as u16 * 0x10)).unwrap() as u16) << 8;
+            self.fetched_color = (vram.read(0x8001 + ((line % 8) * 0x2) + (self.current_tile_number as u16 * 0x10)).unwrap() as u16) << 8;
         } else if bg_tiles_address == 0x9000 {
             // Todo: Recheck later
             let mapped_tile = self.current_tile_number as i32;

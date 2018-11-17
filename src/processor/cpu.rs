@@ -17,6 +17,7 @@ pub struct CPU{
 
     memory: Vec<Memory>,
     io_registers: Memory,
+    boot_rom: Option<Memory>,
     ppu: PixelProcessingUnit,
     cartridge: Cartridge,
 
@@ -24,12 +25,18 @@ pub struct CPU{
 }
 
 impl CPU {
-    pub fn new(interrupt: InterruptController, cartridge: Cartridge, lcd_fetcher: Arc<Mutex<LCDFetcher>>, boot_sequence: bool) -> CPU {
+    pub fn new(interrupt: InterruptController, cartridge: Cartridge, lcd_fetcher: Arc<Mutex<LCDFetcher>>, boot_rom: Option<Vec<u8>>) -> CPU {
+
+        let mut boot_rom = match boot_rom {
+            Some(opcodes) => Some(Memory::new_read_only(&opcodes, 0x0000, opcodes.len() as u16)),
+            None => None
+        };
+        let boot_sequence = boot_rom.is_some();
         let mut memory = Self::init_memory();
         let io_registers = Memory::new_read_write(&[0u8; 0], 0xFF00, 0xFF7F);
         let ppu = PixelProcessingUnit::new(lcd_fetcher);
         let cpu_wait_cycles = 0;
-        let mut cpu = CPU { registers: Registers::new(boot_sequence), interrupt, memory, io_registers, ppu, cartridge, cpu_wait_cycles };
+        let mut cpu = CPU { registers: Registers::new(boot_sequence), interrupt, memory, io_registers, boot_rom, ppu, cartridge, cpu_wait_cycles };
         cpu.init_boot_state(boot_sequence);
         cpu
     }
@@ -97,6 +104,11 @@ impl CPU {
 
 impl MapsMemory for CPU {
     fn read(&self, address: u16) -> Result<u8, ()> {
+        if let Some(boot) = &self.boot_rom{
+            if boot.is_in_range(address){
+                return boot.read(address);
+            }
+        }
         let read = self.memory.iter()
             .find(|mem| mem.is_in_range(address))
             .map( |mem| mem.read(address))
@@ -114,7 +126,6 @@ impl MapsMemory for CPU {
         } else{
             read
         }
-
     }
 
     fn write(&mut self, address: u16, value: u8) -> Result<(), ()>{

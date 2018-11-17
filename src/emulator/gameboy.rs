@@ -16,9 +16,9 @@ pub struct Gameboy {
 }
 
 impl Gameboy {
-    pub fn new(lcd_fetcher: Arc<Mutex<LCDFetcher>>, cartridge: Cartridge, boot: bool) -> Gameboy{
+    pub fn new(lcd_fetcher: Arc<Mutex<LCDFetcher>>, cartridge: Cartridge, boot_rom: Option<Vec<u8>>) -> Gameboy{
         let interrupt = InterruptController::new();
-        let cpu = CPU::new(interrupt, cartridge, lcd_fetcher, boot);
+        let cpu = CPU::new(interrupt, cartridge, lcd_fetcher, boot_rom);
         Gameboy{ cpu }
     }
 

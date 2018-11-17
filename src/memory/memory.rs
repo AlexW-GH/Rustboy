@@ -1,5 +1,8 @@
+#[derive(Debug)]
 pub struct ReadOnly{memory: MemoryInternal}
+#[derive(Debug)]
 pub struct WriteOnly{memory: MemoryInternal}
+#[derive(Debug)]
 pub struct ReadWrite{memory: MemoryInternal}
 
 pub trait MapsMemory{
@@ -8,6 +11,8 @@ pub trait MapsMemory{
     fn is_in_range(&self, address: u16) -> bool;
 }
 
+
+#[derive(Debug)]
 pub enum Memory{
     ReadOnly{memory: ReadOnly},
     WriteOnly{memory: WriteOnly},
@@ -94,6 +99,7 @@ impl ReadWrite{
     }
 }
 
+#[derive(Debug)]
 struct MemoryInternal{
     from: u16,
     to: u16,
