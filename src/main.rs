@@ -93,7 +93,7 @@ fn setup_logging(file_name: &str){
 fn create_window() -> PistonWindow{
     WindowSettings::new("Rustboy", (emulator::renderer::HOR_PIXELS*3, emulator::renderer::VER_PIXELS*3))
         .exit_on_esc(true)
-        .resizable(false)
+        .resizable(true)
         .build()
         .unwrap_or_else(|e| { panic!("Failed to build PistonWindow: {}", e) })
 }

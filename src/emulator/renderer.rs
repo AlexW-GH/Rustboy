@@ -21,18 +21,6 @@ pub struct Renderer {
     window_height: u32,
 }
 
-#[derive(Debug)]
-struct BgTile{
-    line0: u16,
-    line1: u16,
-    line2: u16,
-    line3: u16,
-    line4: u16,
-    line5: u16,
-    line6: u16,
-    line7: u16
-}
-
 impl Renderer {
     pub fn new(window: PistonWindow, lcd: Arc<Mutex<LCDFetcher>>) -> Renderer {
         let size: Size = window.size();
@@ -44,7 +32,10 @@ impl Renderer {
             match e {
                 Event::Loop(loop_event) => match loop_event {
                     Loop::Render(r) => {
-                        let img = imageops::resize(self.lcd.lock().unwrap().image(), self.window_width, self.window_height, FilterType::Lanczos3);
+                        let img = {
+                            self.lcd.lock().unwrap().image().clone()
+                        };
+                        let img = imageops::resize(&img, self.window_width, self.window_height, FilterType::CatmullRom);
                         let img: G2dTexture = Texture::from_image(
                             &mut self.window.factory,
                             &img,
@@ -56,6 +47,12 @@ impl Renderer {
                     },
                     _ => ()
                 },
+                Event::Input(input_event) => match input_event {
+                    Input::Resize(w,h) => {
+                        self.window_width = w;
+                        self.window_height = h;
+                    },
+                }
                 _ => ()
             }
         }
