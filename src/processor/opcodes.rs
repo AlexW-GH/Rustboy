@@ -223,8 +223,8 @@ fn ld_mnn_a(opcode: u8, _: u16, cpu: &mut CPU) -> u8{
     let pc = cpu.registers.pc();
     let value = cpu.registers.a();
     let address = memory_op::read_memory_following_u16(cpu, pc);
-    memory_op::write_memory(cpu,  address, value);
     debug!("{:#06X}: {:#04X} | LD   [{:#06X}], {:?}({:?})", pc, opcode, address, RegisterR::A, value);
+    memory_op::write_memory(cpu,  address, value);
 
     cpu.registers.inc_pc(3);
     16

@@ -121,7 +121,11 @@ impl MapsMemory for CPU {
             } else if self.io_registers.is_in_range(address) {
                 self.io_registers.read(address)
             } else {
-                Err(())
+                if address >= 0xFEA0 && address <= 0xFEFF{
+                    Ok(0xFF)
+                } else {
+                    Err(())
+                }
             }
         } else{
             read
@@ -146,7 +150,11 @@ impl MapsMemory for CPU {
             } else if self.io_registers.is_in_range(address) {
                 self.io_registers.write(address, value)
             } else {
-                Err(())
+                if address >= 0xFEA0 && address <= 0xFEFF{
+                    Ok(())
+                } else {
+                    Err(())
+                }
             }
         }
     }
@@ -192,7 +200,7 @@ mod tests {
         let rom = add_header(rom);
         let cartridge = Cartridge::new(rom);
         let lcd_fetcher = Arc::new(Mutex::new(LCDFetcher::new()));
-        let mut cpu = CPU::new(interrupt, cartridge, lcd_fetcher, false);
+        let mut cpu = CPU::new(interrupt, cartridge, lcd_fetcher, None);
         cpu.registers.set_pc(0);
         cpu.registers.set_f(0x0);
         cpu

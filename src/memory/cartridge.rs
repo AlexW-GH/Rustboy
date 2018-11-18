@@ -179,10 +179,7 @@ impl MapsMemory for MBCNone {
     }
 
     fn write(&mut self, address: u16, value: u8) -> Result<(), ()>{
-        self.memory.iter_mut()
-            .find(|mem| mem.is_in_range(address))
-            .map( |mem| mem.write(address, value))
-            .unwrap()
+        Ok(())
     }
 
     fn is_in_range(&self, address: u16) -> bool{
