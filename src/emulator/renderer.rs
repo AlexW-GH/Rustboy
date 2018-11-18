@@ -52,6 +52,7 @@ impl Renderer {
                         self.window_width = w;
                         self.window_height = h;
                     },
+                    _ => ()
                 }
                 _ => ()
             }
