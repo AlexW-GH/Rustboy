@@ -1176,7 +1176,7 @@ fn swap_r(ext_opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let register = RegisterR::new(ext_opcode & 0b111);
     let value = cpu.registers.read_r(register);
     debug!("{:#06X}: {:#04X} | SWAP  {:?}({:#010b})", pc, ext_opcode, register, value);
-    let result = ((value & 0b111) << 4) | (value >> 4) & 0b1111;
+    let result = ((value & 0b1111) << 4) | (value >> 4) & 0b1111;
     cpu.registers.set_flags(if result == 0 {1} else {0}, 0, 0, 0);
     cpu.registers.write_r(register, result);
     cpu.registers.inc_pc(2);
@@ -1500,6 +1500,10 @@ fn cpl(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let value = cpu.registers.read_r(register);
     debug!("{:#06X}: {:#04X} | CPL {:?}({:#010b})", pc, opcode, register, value);
     let result = !value;
+    let mut flags = cpu.registers.f();
+    flags = bit_op::set_bit(flags, 5);
+    flags = bit_op::set_bit(flags, 6);
+    cpu.registers.set_f(flags);
     cpu.registers.write_r(register, result);
     cpu.registers.inc_pc(1);
     4
@@ -1511,6 +1515,8 @@ fn scf(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let mut flags = cpu.registers.f();
     debug!("{:#06X}: {:#04X} | SCF", pc, opcode);
     flags = bit_op::set_bit(flags, 4);
+    flags = bit_op::clear_bit(flags, 5);
+    flags = bit_op::clear_bit(flags, 6);
     cpu.registers.set_f(flags);
     cpu.registers.inc_pc(1);
     4
@@ -1521,7 +1527,10 @@ fn scf(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
 fn ccf(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let mut flags = cpu.registers.f();
     debug!("{:#06X}: {:#04X} | SCF", pc, opcode);
-    flags = bit_op::clear_bit(flags, 4);
+
+    flags = bit_op::toggle_bit(flags, 4);
+    flags = bit_op::clear_bit(flags, 5);
+    flags = bit_op::clear_bit(flags, 6);
     cpu.registers.set_f(flags);
     cpu.registers.inc_pc(1);
     4

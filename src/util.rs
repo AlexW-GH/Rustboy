@@ -13,6 +13,13 @@ pub mod bit_op{
         number & !(0b1 << bit)
     }
 
+    pub fn toggle_bit(number: u8, bit: u8) -> u8{
+        if bit > 7 {
+            panic!("invalid bit (>7)");
+        }
+        number ^ 0b1 << bit
+    }
+
     pub fn change_bit_to(number: u8, bit: u8, value: u8) -> u8{
         if bit > 7 {
             panic!("invalid bit (>7)");
