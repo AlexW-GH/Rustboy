@@ -280,7 +280,7 @@ impl Registers {
     }
 
     pub fn set_f(&mut self, value: u8){
-        unsafe { self.af.single.f = value };
+        unsafe { self.af.single.f = value  & 0xF0 };
     }
 
     pub fn set_h(&mut self, value: u8){
@@ -292,7 +292,7 @@ impl Registers {
     }
 
     pub fn set_af(&mut self, value: u16){
-        self.af.both = value;
+        self.af.both = value & 0xFFF0;
     }
 
     pub fn set_bc(&mut self, value: u16){
@@ -407,7 +407,7 @@ impl Registers {
                     FlagCalculationOperation::Add => (operand1 + operand2 + carry) & 0xFF,
                     FlagCalculationOperation::Sub => (operand1 - operand2) - carry,
                 };
-                if result == 0 {
+                if (result & 0xFF) == 0 {
                     bit_op::set_bit(flags, 7)
                 } else {
                     bit_op::clear_bit(flags, 7)
@@ -441,10 +441,9 @@ impl Registers {
                         }
                     },
                     FlagCalculationOperation::Sub => {
-                        let mut result: i16 = operand1 as i16 & 0xF;
-                        result -= (operand2 & 0xF) as i16;
-                        result -= (carry & 0xF) as i16;
-                        if result < 0 {
+                        let result = operand1.wrapping_sub(operand2).wrapping_sub(carry);
+                        let result = ((operand1 ^ operand2 ^ (result & 0xff)) & ( 1 << 4)) != 0;
+                        if result == true {
                             bit_op::set_bit(flags, 5)
                         } else {
                             bit_op::clear_bit(flags, 5)

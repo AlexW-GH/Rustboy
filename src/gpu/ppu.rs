@@ -239,7 +239,7 @@ impl Fetcher{
         }
         let scx = io_registers.read((SCX_REGISTER)).unwrap() as u16;
         let scy = io_registers.read((SCY_REGISTER)).unwrap();
-        let tile_map_address = bg_map_address + self.next_tile + ((line.wrapping_add(scy) / 8) as u16) * 0x20;
+        let tile_map_address = bg_map_address + self.next_tile + (((line % LINES_TO_DRAW as u8).wrapping_add(scy) / 8) as u16) * 0x20;
         //println!("scy: {:#06x} | bg_map_address: {:#06x} | next_tile: {:#06x} | line: {} | tile_map_address: {:#06x}", scy, bg_map_address, self.next_tile, ((line.wrapping_add(scy) / 8) as u16), tile_map_address);
         self.current_tile_number = vram.read(tile_map_address).unwrap() as u16;
         self.next_tile = (self.next_tile +1);

@@ -50,6 +50,7 @@ impl CPU {
         if self.cpu_wait_cycles <= 0 {
             let pc = self.registers.pc();
             let opcode = self.read(pc).unwrap();
+            //println!("pc: {:#06x} | opcode: {:#04x}", pc, opcode);
             self.cpu_wait_cycles += opcodes::execute(opcode, pc, self) as i64;
         }
         self.cpu_wait_cycles -= 1;

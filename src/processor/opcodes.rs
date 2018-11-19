@@ -1488,9 +1488,36 @@ fn rst_t(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
 
 /// DAA
 /// 00 100 111
-fn daa(_: u8, _: u16, _: &mut CPU) -> u8{
-    unimplemented!();
-    //4
+fn daa(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
+    let mut flag_n = cpu.registers.flag_n();
+    let mut flag_cy = cpu.registers.flag_cy();
+    let mut flag_h = cpu.registers.flag_h();
+    let mut flag_z = cpu.registers.flag_z();
+    let mut register_a = cpu.registers.a();
+    debug!("{:#06X}: {:#04X} | DAA ({:#010b})", pc, opcode, register_a);
+    if flag_n == 0 {
+        if flag_cy == 1 || register_a > 0x99 {
+            register_a = register_a.wrapping_add(0x60);
+            flag_cy = 1;
+        }
+        if flag_h == 1 || (register_a & 0x0f) > 0x09 {
+            register_a = register_a.wrapping_add(0x6);
+        }
+    } else {
+        if flag_cy == 1 {
+            register_a = register_a.wrapping_sub(0x60);
+        }
+        if flag_h == 1 {
+            register_a = register_a.wrapping_sub(0x6);
+        }
+    }
+    flag_z = if register_a == 0 {1} else {0};
+    flag_h = 0;
+
+    cpu.registers.set_flags(flag_z, flag_n, flag_h, flag_cy);
+    cpu.registers.set_a(register_a);
+    cpu.registers.inc_pc(1);
+    4
 }
 
 /// CPL
