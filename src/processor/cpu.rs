@@ -149,6 +149,9 @@ impl MapsMemory for CPU {
             } else if self.cartridge.is_in_range(address){
                 self.cartridge.write(address, value)
             } else if self.io_registers.is_in_range(address) {
+                if address == 0xFF50 {
+                    self.boot_rom = None;
+                }
                 self.io_registers.write(address, value)
             } else {
                 if address >= 0xFEA0 && address <= 0xFEFF{

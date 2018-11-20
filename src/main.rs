@@ -42,7 +42,7 @@ fn main() {
     setup_logging(&filename);
     let mut rom = File::open(filename).expect("file not found");
     let cartridge = Cartridge::new(read_game(&mut rom));
-    let boot_rom = match File::open( "assets/boot.gb1"){
+    let boot_rom = match File::open( "assets/boot.gb"){
         Ok(mut boot_file) => Option::Some(read_game(&mut boot_file)),
         Err(_) => Option::None
     };

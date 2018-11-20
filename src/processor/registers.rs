@@ -361,6 +361,16 @@ impl Registers {
         self.set_f(flags);
     }
 
+    pub fn set_flags_add_i8(&mut self, operand1: u8, operand2: i8, carry: u8,
+                         z: FlagCalculationStatus, n: FlagCalculationStatus,
+                         h: FlagCalculationStatus, cy: FlagCalculationStatus){
+        if(operand2 >= 0){
+            self.set_flags_add(operand1, operand2 as u8, carry, z, n, h, cy)
+        } else {
+            self.set_flags_sub(operand1, (operand2 as i16).abs() as u8, carry, z, n, h, cy)
+        }
+    }
+
     pub fn set_flags_sub(&mut self, operand1: u8, operand2: u8, carry: u8,
                               z: FlagCalculationStatus, n: FlagCalculationStatus,
                               h: FlagCalculationStatus, cy: FlagCalculationStatus){

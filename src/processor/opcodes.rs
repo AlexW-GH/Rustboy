@@ -59,7 +59,7 @@ fn extended(_: u8, pc: u16, cpu: &mut CPU) -> u8{
 }
 
 fn unsupp(opcode: u8, _: u16, _: &mut CPU) -> u8{
-    panic!("Opcode {:#06x} not supported", opcode);
+    panic!("Opcode {:#04x} not supported", opcode);
 }
 
 // -------------------------------------------- //
@@ -373,8 +373,9 @@ fn ldhl_sp_e(opcode: u8, _: u16, cpu: &mut CPU) -> u8{
     let sp = cpu.registers.sp();
     let value = memory_op::read_memory_following_u8(cpu, pc);
     debug!("{:#06X}: {:#04X} | LDHL {:?}, {:?}", pc, opcode, RegisterDD::SP, value);
-    cpu.registers.set_flags_add_u16(sp, value as u16, 0, Clear, Clear, Calculate, Calculate);
-    cpu.registers.set_hl(sp.wrapping_add(value as i8 as u16));
+    cpu.registers.set_flags_add_i8((sp & 0xFF) as u8, value as i8 , 0, Clear, Clear, Calculate, Calculate);
+    let result = add_signed(sp, value);
+    cpu.registers.set_hl(result);
     cpu.registers.inc_pc(2);
     12
 }
@@ -825,7 +826,7 @@ fn add_sp_e(opcode: u8, _: u16, cpu: &mut CPU) -> u8{
     let val_n = memory_op::read_memory_following_u8(cpu, pc);
     debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), ({:?})", pc, opcode, RegisterSS::SP, val_sp, val_n);
     let result = add_signed(val_sp, val_n);
-    cpu.registers.set_flags_add_u16(val_sp, val_n as u16, 0, Clear, Clear, Calculate, Calculate);
+    cpu.registers.set_flags_add_i8((val_sp & 0xFF) as u8, val_n as i8, 0, Clear, Clear, Calculate, Calculate);
     cpu.registers.set_sp(result);
     cpu.registers.inc_pc(2);
     16
@@ -1190,7 +1191,7 @@ fn swap_mhl(ext_opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
     let address = cpu.registers.hl();
     let value = memory_op::read_memory(cpu, address);
     debug!("{:#06X}: {:#04X} | SWAP  {:?}[{:#06x}]({:#010b})", pc, ext_opcode, RegisterDD::HL, address, value);
-    let result = ((value & 0b111) << 4) | (value >> 4) & 0b1111;
+    let result = ((value & 0b1111) << 4) | (value >> 4) & 0b1111;
     cpu.registers.set_flags(if result == 0 {1} else {0}, 0, 0, 0);
     memory_op::write_memory(cpu,  address, result);
     cpu.registers.inc_pc(2);
