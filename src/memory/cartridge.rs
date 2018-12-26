@@ -1,8 +1,8 @@
-use memory::memory::Memory;
-use memory::memory::MapsMemory;
+use super::memory::Memory;
+use super::memory::MapsMemory;
 
-const ROM_BANK_SIZE: usize = 0x4000;
 
+#[derive(Debug)]
 pub struct CartridgeHeader{
     title: String,
     manufacturer: String,
@@ -14,7 +14,7 @@ pub struct CartridgeHeader{
     destination: String,
     version: u8,
     checksum: u8,
-    global_checksum: u16
+    global_checksum: u16,
 }
 
 impl CartridgeHeader{
@@ -30,7 +30,9 @@ impl CartridgeHeader{
         let version = rom[0x14C];
         let checksum = rom[0x14D];
         let global_checksum = ((rom[0x14E] as u16) << 8) + rom[0x14F] as u16;
-        CartridgeHeader{title, manufacturer, licensee_code, cartridge_type, rom_size, ram_size, destination, old_licensee_code, version, checksum, global_checksum}
+        let header = CartridgeHeader{title, manufacturer, licensee_code, cartridge_type, rom_size, ram_size, destination, old_licensee_code, version, checksum, global_checksum};
+        info!("Load Rom: {:?}", header);
+        return header;
     }
 
 
@@ -45,19 +47,13 @@ impl CartridgeHeader{
     }
 }
 
+#[derive(Copy, Clone, Debug)]
 pub enum CartridgeType {
     MBCNone{ram: bool, battery: bool},
     MBC1{ram: bool, battery: bool},
     MBC2{battery: bool},
     MMM01{ram: bool, battery: bool},
     MBC3{timer: bool, ram: bool, battery: bool},
-    MBC5{ram: bool, battery: bool, rumble: bool},
-    MBC6,
-    MBC7,
-    PocketCamera,
-    BandaiTama5,
-    HuC3,
-    HuC1
 }
 
 impl CartridgeType {
@@ -138,15 +134,15 @@ impl RamSize{
 struct MemoryBankController{}
 
 impl MemoryBankController {
-    pub fn new(rom: ROM) -> Box<MapsMemory + Send>{
+    pub fn new(rom: ROM) -> Box<dyn MapsMemory + Send>{
         let rom_size = rom.header.rom_size;
         let ram_size = rom.header.ram_size;
         let ref rom_ref = rom;
         match rom_ref.header.cartridge_type{
-            CartridgeType::MBCNone{ram, battery} => {
+            CartridgeType::MBCNone{ram, battery: _} => {
                 MBCNone::new(&rom, ram)
             },
-            CartridgeType::MBC1{ram, battery} => {
+            CartridgeType::MBC1{ram, battery: _} => {
                 MBC1::new(&rom, ram, rom_size, ram_size)
             },
             _ => unimplemented!()
@@ -178,7 +174,7 @@ impl MapsMemory for MBCNone {
             .unwrap()
     }
 
-    fn write(&mut self, address: u16, value: u8) -> Result<(), ()>{
+    fn write(&mut self, _address: u16, _value: u8) -> Result<(), ()>{
         Ok(())
     }
 
@@ -218,7 +214,7 @@ impl MBC1{
         for i in 1 ..= rom_banks{
             let start = if rom.data.len() >= 0x4000 * i {0x4000 * i} else {rom.data.len()};
             let end = if rom.data.len() >= start+0x3FFF {start+0x3FFF} else {rom.data.len() -1};
-            let mut banki = Memory::new_read_only(&rom.data[start ..= end],0x4000, 0x7FFF);
+            let banki = Memory::new_read_only(&rom.data[start ..= end],0x4000, 0x7FFF);
             memory_rom.push(banki);
         }
         let (ram_banks, bank_size) = if ram {
@@ -240,15 +236,15 @@ impl MBC1{
 impl MapsMemory for MBC1 {
     fn read(&self, address: u16) -> Result<u8, ()>{
         match address {
-            0x0000 ... 0x3FFF => self.rom[0].read(address),
-            0x4000 ... 0x7FFF => {
+            0x0000 ..= 0x3FFF => self.rom[0].read(address),
+            0x4000 ..= 0x7FFF => {
                 let mut bank = self.rom_bank_number | 1;
                 if self.mode_select == 0{
                     bank = (self.ram_enable << 5) | bank;
                 }
                 self.rom[bank as usize].read(address)
             },
-            0xA000 ... 0xBFFF => {
+            0xA000 ..= 0xBFFF => {
                 if (self.ram_enable & 0x0A) == 0x0A{
                     let bank = if self.mode_select == 1 {self.ram_bank_number} else {0};
                     self.ram[bank as usize].read(address)
@@ -263,19 +259,19 @@ impl MapsMemory for MBC1 {
 
     fn write(&mut self, address: u16, value: u8) -> Result<(), ()>{
         match address{
-            0x0000 ... 0x1FFF => {
+            0x0000 ..= 0x1FFF => {
                 self.ram_enable = value;
                 return Ok(());
             },
-            0x2000 ... 0x3FFF => {
+            0x2000 ..= 0x3FFF => {
                 self.rom_bank_number = value & 0b11111;
                 return Ok(());
             },
-            0x4000 ... 0x5FFF => {
+            0x4000 ..= 0x5FFF => {
                 self.ram_bank_number = value & 0b11;
                 return Ok(());
             },
-            0x6000 ... 0x7FFF => {
+            0x6000 ..= 0x7FFF => {
                 self.mode_select = value & 0b1;
                 return Ok(());
             },
@@ -297,7 +293,7 @@ impl MapsMemory for MBC1 {
 }
 
 pub struct Cartridge{
-    mbc: Box<MapsMemory + Send>
+    mbc: Box<dyn MapsMemory + Send>
 }
 
 impl Cartridge {

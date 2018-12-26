@@ -1,13 +1,10 @@
 use std::sync::Arc;
-use std::sync::RwLock;
-use gpu::lcd::LCD;
-use processor::interrupt_controller::InterruptController;
-use processor::cpu::CPU;
-use memory::cartridge::Cartridge;
-use gpu::ppu::PixelProcessingUnit;
+use crate::processor::interrupt_controller::InterruptController;
+use crate::processor::cpu::CPU;
+use crate::memory::cartridge::Cartridge;
 use std::time::Instant;
 use std::sync::Mutex;
-use gpu::lcd::LCDFetcher;
+use crate::gpu::lcd::LCDFetcher;
 
 const NANO_CYCLE_TIME: i64 = 238;
 
@@ -51,7 +48,7 @@ impl ClockGenerator{
 
     pub fn wait_next_tick(&mut self){
         loop {
-            self.time_spent += self.last_measure.elapsed().as_nanos() as i64;
+            self.time_spent += self.last_measure.elapsed().subsec_nanos() as i64;
             if self.time_spent >= NANO_CYCLE_TIME{
                 self.time_spent -= NANO_CYCLE_TIME;
                 self.last_measure = Instant::now();

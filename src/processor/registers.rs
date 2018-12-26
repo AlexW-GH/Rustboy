@@ -1,5 +1,5 @@
 use std::fmt;
-use util::bit_op;
+use crate::util::bit_op;
 
 #[derive(Clone)]
 pub struct Registers{
@@ -12,7 +12,7 @@ pub struct Registers{
 }
 
 impl fmt::Debug for Registers {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{{af: {:?}, bc: {:?}, de: {:?}, hl: {:?}, sp: {:#06X}, pc: {:#06X}}}", self.af, self.bc, self.de, self.hl, self.sp, self.pc)
     }
 }
@@ -24,7 +24,7 @@ union AF {
 }
 
 impl fmt::Debug for AF {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         unsafe { write!(f, "{:#06X} (a: {:#04X}, f: {:#04X})", self.both, self.single.a, self.single.f) }
     }
 }
@@ -44,7 +44,7 @@ union BC {
 }
 
 impl fmt::Debug for BC {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         unsafe { write!(f, "{:#06X} (b: {:#04X}, c: {:#04X})", self.both, self.single.b, self.single.c) }
     }
 }
@@ -64,7 +64,7 @@ union DE {
 }
 
 impl fmt::Debug for DE {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         unsafe { write!(f, "{:#06X} (d: {:#04X}, e: {:#04X})", self.both, self.single.d, self.single.e) }
     }
 }
@@ -84,7 +84,7 @@ union HL {
 }
 
 impl fmt::Debug for HL {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         unsafe { write!(f, "{:#06X} (h: {:#04X}, l: {:#04X})", self.both, self.single.h, self.single.l) }
     }
 }
@@ -337,7 +337,7 @@ impl Registers {
     pub fn flag_n(&self) -> u8{
         (self.f() >> 6) & 1
     }
-    pub fn flag_z(&self) -> u8{
+    #[allow(unused)] pub fn flag_z(&self) -> u8{
         (self.f() >> 7) & 1
     }
 
@@ -364,7 +364,7 @@ impl Registers {
     pub fn set_flags_add_i8(&mut self, operand1: u8, operand2: i8, carry: u8,
                          z: FlagCalculationStatus, n: FlagCalculationStatus,
                          h: FlagCalculationStatus, cy: FlagCalculationStatus){
-        if(operand2 >= 0){
+        if operand2 >= 0 {
             self.set_flags_add(operand1, operand2 as u8, carry, z, n, h, cy)
         } else {
             self.set_flags_sub(operand1, (operand2 as i16).abs() as u8, carry, z, n, h, cy)
@@ -708,7 +708,7 @@ impl Condition {
 
 #[cfg(test)]
 mod tests {
-    use processor::registers::Registers;
+    use crate::processor::registers::Registers;
 
     #[test]
     fn everything_setup_after_initialization_with_boot_sequence() {

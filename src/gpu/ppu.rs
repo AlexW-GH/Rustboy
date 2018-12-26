@@ -1,45 +1,32 @@
-use memory::memory::Memory;
-use memory::memory::MapsMemory;
-use util;
-use gpu::lcd::LCD;
-use gpu::lcd::LCDFetcher;
+use crate::memory::memory::Memory;
+use crate::memory::memory::MapsMemory;
+use super::lcd::LCD;
+use super::lcd::LCDFetcher;
 use std::sync::Mutex;
 use std::sync::Arc;
-use processor::interrupt_controller::InterruptController;
+use crate::processor::interrupt_controller::InterruptController;
 
 // LCD Control Register
 const LCDC_REGISTER: u16 = 0xFF40;
-
-// LCD Status Register
-const STAT_REGISTER: u16 = 0xFF41;
 
 // LCD Position and Scrolling
 const SCY_REGISTER: u16 = 0xFF42;
 const SCX_REGISTER: u16 = 0xFF43;
 const LY_REGISTER: u16 = 0xFF44;
-const LYC_REGISTER: u16 = 0xFF45;
-const WY_REGISTER: u16 = 0xFF4A;
-const WX_REGISTER: u16 = 0xFF4B;
-
-// LCD Monochrome Palettes
-const BGP_REGISTER: u16 = 0xFF47;
-const OBP0_REGISTER: u16 = 0xFF48;
-const OBP1_REGISTER: u16 = 0xFF49;
-
 
 const OAM_SEARCH_TICKS: usize = 20 * 2;
+const OAM_SEARCH_TICKS_END: usize = OAM_SEARCH_TICKS - 1;
 const PIXEL_TRANSFER_AND_HBLANK_TICKS: usize = 94 * 2;
 
 const LINES_TO_DRAW: usize = 144;
 const LINES_VBLANK: usize = 10;
 
 const TICKS_PER_LINE: usize = OAM_SEARCH_TICKS + PIXEL_TRANSFER_AND_HBLANK_TICKS;
+const TICKS_PER_LINE_END: usize = TICKS_PER_LINE - 1;
 const LINES_PER_CYCLE: usize = LINES_TO_DRAW + LINES_VBLANK;
 const TICKS_PER_CYCLE: usize = LINES_PER_CYCLE * TICKS_PER_LINE;
 
 const TILES_IN_LINES: u16 = 0x14;
-const TILE_LINES: u16 = 0x12;
-const MAX_TILES: u16 = TILE_LINES * TILES_IN_LINES;
 
 pub struct PixelProcessingUnit{
     memory: Memory,
@@ -51,14 +38,12 @@ pub struct PixelProcessingUnit{
 
     current_tick: usize,
     current_pixel: usize,
-    valid_objects: [usize; 10],
-    valid_objects_count: usize,
     vblank_set: bool,
 }
 
 impl PixelProcessingUnit {
     pub fn new(lcd_fetcher: Arc<Mutex<LCDFetcher>>) -> PixelProcessingUnit{
-        let mut memory = Memory::new_read_write(&[0u8; 0], 0x8000, 0x9FFF);
+        let memory = Memory::new_read_write(&[0u8; 0], 0x8000, 0x9FFF);
         let oam = Memory::new_read_write(&[0u8; 0], 0xFE00, 0xFE9F);
 
         let lcd = LCD::new(lcd_fetcher);
@@ -66,16 +51,13 @@ impl PixelProcessingUnit {
         let fetcher = Fetcher::new();
         let current_tick = 0;
         let current_pixel = 0;
-        let valid_objects = [0; 10];
-        let valid_objects_count = 0;
-        PixelProcessingUnit{memory, oam, lcd, pixel_fifo, fetcher, current_tick, current_pixel, valid_objects, valid_objects_count, vblank_set: false}
+        PixelProcessingUnit{memory, oam, lcd, pixel_fifo, fetcher, current_tick, current_pixel, vblank_set: false}
     }
 
-    pub fn step(&mut self, io_registers: &mut Memory, interrupt: &mut InterruptController){
-
+    pub fn step(&mut self, io_registers: &mut Memory, _interrupt: &mut InterruptController){
         match self.current_tick % TICKS_PER_LINE as usize {
-            0 .. OAM_SEARCH_TICKS => self.oam_search(io_registers),
-            OAM_SEARCH_TICKS .. TICKS_PER_LINE => self.pixel_transfer(io_registers),
+            0 ..= OAM_SEARCH_TICKS_END => self.oam_search(io_registers),
+            OAM_SEARCH_TICKS ..= TICKS_PER_LINE_END => self.pixel_transfer(io_registers),
             _ => panic!()
         }
 
@@ -89,7 +71,7 @@ impl PixelProcessingUnit {
         }
     }
 
-    pub fn oam_search(&mut self, io_registers: &mut Memory){
+    pub fn oam_search(&mut self, _io_registers: &mut Memory){
         //Todo!
         //println!("oam search @ tick: {}", self.current_tick);
     }
@@ -157,12 +139,11 @@ impl MapsMemory for PixelProcessingUnit{
 struct PixelFifo {
     current_size: usize,
     color_queue: u32,
-    palette_queue: u32,
 }
 
 impl PixelFifo{
     pub fn new() -> PixelFifo{
-        PixelFifo { current_size: 0, color_queue: 0, palette_queue: 0}
+        PixelFifo { current_size: 0, color_queue: 0}
     }
 
     pub fn write_pixel(&mut self, lcd: &mut LCD, pixel_in_line: u32, line: u32) -> usize{
@@ -203,7 +184,6 @@ struct Fetcher {
     current_tile_number: u16,
     data0: u8,
     data1: u8,
-    fetched_palette: u16,
 }
 
 enum FetcherStep{
@@ -226,7 +206,7 @@ impl FetcherStep{
 
 impl Fetcher{
     pub fn new() -> Fetcher {
-        Fetcher {current_step: FetcherStep::ReadTile, current_tile_number: 0, current_tile_address: 0, data0: 0, data1: 0, fetched_palette: 0, current_map_line: 0 }
+        Fetcher {current_step: FetcherStep::ReadTile, current_tile_number: 0, current_tile_address: 0, data0: 0, data1: 0, current_map_line: 0 }
     }
 
     pub fn fetch_tile(&mut self, pixel_fifo: &mut PixelFifo, vram: &Memory, io_registers: &mut Memory) {
@@ -241,12 +221,12 @@ impl Fetcher{
     fn read_tile(&mut self, vram: &Memory, io_registers: &mut Memory) {
         let lcd_control_register = io_registers.read(LCDC_REGISTER).unwrap();
         let bg_map_address = if (lcd_control_register >> 3) & 1 == 0 { 0x9800 } else { 0x9C00 };
-        let scx = io_registers.read((SCX_REGISTER)).unwrap() as u16;
-        let scy = io_registers.read((SCY_REGISTER)).unwrap();
+        let _scx = io_registers.read(SCX_REGISTER).unwrap() as u16;
+        let scy = io_registers.read(SCY_REGISTER).unwrap();
         let tile_map_address = bg_map_address + self.current_tile_address + (((self.current_map_line.wrapping_add(scy) as u8) / 8) as u16) * 0x20;
         //println!("line: {:#04x} | scy: {} | bg_map_address: {:#06x} | tile: {:#06x} | translated line: {:#04x} | tile_map_address: {:#06x}", self.current_map_line, scy, bg_map_address, self.current_tile_address, ((self.current_map_line.wrapping_add(scy) / 8) as u16), tile_map_address);
         self.current_tile_number = vram.read(tile_map_address).unwrap() as u16;
-        self.current_tile_address = (self.current_tile_address +1);
+        self.current_tile_address = self.current_tile_address +1;
         self.current_step = self.current_step.next();
     }
 
@@ -276,7 +256,7 @@ impl Fetcher{
             }
         } else if bg_tiles_address == 0x9001 {
             // Todo: Recheck later
-            let mapped_tile = self.current_tile_number as i32;
+            let _mapped_tile = self.current_tile_number as i32;
             self.data1 = vram.read((bg_tiles_address as i32 + ((self.current_map_line as i32 % 8) * 0x2) + (self.current_tile_number * 0x10) as i32) as u16).unwrap();
         } else { unimplemented!() }
         self.current_step = self.current_step.next();

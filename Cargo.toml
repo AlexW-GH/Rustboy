@@ -1,7 +1,8 @@
 [package]
 name = "rust_boy"
 version = "0.1.0"
-authors = ["Alex <mithnar333@googlemail.com>"]
+authors = ["Alexander Wendt <alexwgh1+rustboy@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 clap = "2.32"

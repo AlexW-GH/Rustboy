@@ -1,13 +1,10 @@
-use std::time::Instant;
-use processor::registers::Registers;
-use processor::interrupt_controller::InterruptController;
-use processor::opcodes;
-use memory::memory::{Memory, MapsMemory};
-use memory::cartridge::Cartridge;
-use gpu::ppu::PixelProcessingUnit;
-use std::rc::Rc;
-use std::cell::RefCell;
-use gpu::lcd::LCDFetcher;
+use crate::processor::registers::Registers;
+use crate::processor::interrupt_controller::InterruptController;
+use crate::processor::opcodes;
+use crate::memory::memory::{Memory, MapsMemory};
+use crate::memory::cartridge::Cartridge;
+use crate::gpu::ppu::PixelProcessingUnit;
+use crate::gpu::lcd::LCDFetcher;
 use std::sync::Mutex;
 use std::sync::Arc;
 
@@ -27,12 +24,12 @@ pub struct CPU{
 impl CPU {
     pub fn new(interrupt: InterruptController, cartridge: Cartridge, lcd_fetcher: Arc<Mutex<LCDFetcher>>, boot_rom: Option<Vec<u8>>) -> CPU {
 
-        let mut boot_rom = match boot_rom {
+        let boot_rom = match boot_rom {
             Some(opcodes) => Some(Memory::new_read_only(&opcodes, 0x0000, opcodes.len() as u16)),
             None => None
         };
         let boot_sequence = boot_rom.is_some();
-        let mut memory = Self::init_memory();
+        let memory = Self::init_memory();
         let io_registers = Memory::new_read_write(&[0u8; 0], 0xFF00, 0xFF7F);
         let ppu = PixelProcessingUnit::new(lcd_fetcher);
         let cpu_wait_cycles = 0;
@@ -66,7 +63,7 @@ impl CPU {
     }
 
     fn init_boot_state(&mut self, boot_sequence: bool){
-        use util::memory_op::write_memory;
+        use crate::util::memory_op::write_memory;
         if !boot_sequence {
             write_memory(self, 0xFF05, 0x00);
             write_memory(self, 0xFF06, 0x00);
@@ -140,7 +137,7 @@ impl MapsMemory for CPU {
             .unwrap_or_else(|| Err(()));
         if write.is_ok() {
             if (address >= 0xE000) && (address <= 0xFDFF){
-                self.write(address - 0x2000, value);
+                self.write(address - 0x2000, value).unwrap();
             }
             write
         } else {
@@ -175,24 +172,16 @@ impl MapsMemory for CPU {
 
 #[cfg(test)]
 mod tests {
-    extern crate simplelog;
-    use std::sync::{Arc, RwLock};
-    use simplelog::CombinedLogger;
-    use simplelog::TermLogger;
+    use simplelog;
+    use std::sync::Arc;
     use log::LevelFilter;
     use simplelog::Config;
-    use simplelog::SimpleLogger;
-    use simplelog::WriteLogger;
-    use std::io;
     use simplelog::TestLogger;
-    use memory::cartridge::ROM;
-    use processor::cpu::CPU;
-    use processor::interrupt_controller::InterruptController;
-    use memory::cartridge::Cartridge;
-    use gpu::ppu::PixelProcessingUnit;
-    use memory::memory::MapsMemory;
-    use util::memory_op::*;
-    use gpu::lcd::LCDFetcher;
+    use crate::processor::cpu::CPU;
+    use crate::processor::interrupt_controller::InterruptController;
+    use crate::memory::cartridge::Cartridge;
+    use crate::util::memory_op::*;
+    use crate::gpu::lcd::LCDFetcher;
     use std::sync::Mutex;
 
     fn create_cpu(rom: Vec<u8>) -> CPU {

@@ -1,11 +1,18 @@
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
-use piston_window::*;
-use gpu::lcd::LCD;
 use image::imageops;
 use image::FilterType;
-use gpu::lcd::LCDFetcher;
+use crate::gpu::lcd::LCDFetcher;
 use std::sync::Mutex;
+use piston_window::G2dTexture;
+use piston_window::Texture;
+use piston_window::TextureSettings;
+use piston_window::PistonWindow;
+use piston_window::Event;
+use piston_window::Loop;
+use piston_window::Input;
+use piston_window::Size;
+use piston_window::Window;
 
 const BG_TILES_HOR: u32 = 20;
 const BG_TILES_VER: u32 = 18;
@@ -31,7 +38,7 @@ impl Renderer {
         while let Some(e) = self.window.next() {
             match e {
                 Event::Loop(loop_event) => match loop_event {
-                    Loop::Render(r) => {
+                    Loop::Render(_r) => {
                         let img = {
                             self.lcd.lock().unwrap().image().clone()
                         };
@@ -41,32 +48,15 @@ impl Renderer {
                             &img,
                             &TextureSettings::new()).unwrap();
                         self.window.draw_2d(&e, |c, g| {
-                            clear([1.0, 0.0, 0.0, 1.0], g);
-                            image(&img, c.transform, g);
+                            piston_window::clear([1.0, 0.0, 0.0, 1.0], g);
+                            piston_window::image(&img, c.transform, g);
                         });
                     },
                     _ => ()
                 },
-                Event::Input(input_event) => match input_event {
-                    Input::Resize(w,h) => {
-                        self.window_width = w;
-                        self.window_height = h;
-                    },
-                    _ => ()
-                }
+                Event::Input(input_event) => self.handle_input(&input_event),
                 _ => ()
             }
-        }
-    }
-
-    fn select_color(line: u16, bits: u32) -> f32{
-        let color_bits = line >> (bits*2) & 0b11;
-        match color_bits{
-            0b00 => 1.0,
-            0b01 => 0.66,
-            0b10 => 0.33,
-            0b11 => 0.0,
-            _ => unreachable!()
         }
     }
 

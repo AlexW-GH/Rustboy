@@ -1,14 +1,5 @@
-#![feature(duration_as_u128)]
-#![feature(exclusive_range_pattern)]
-
 #[macro_use]
 extern crate log;
-extern crate simplelog;
-extern crate clap;
-extern crate chrono;
-extern crate piston_window;
-extern crate image;
-extern crate texture;
 
 mod processor;
 mod emulator;
@@ -16,7 +7,7 @@ mod gpu;
 mod memory;
 mod util;
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::thread;
 
 use std::fs::File;
@@ -24,21 +15,15 @@ use std::io::Read;
 
 use clap::{Arg, App};
 use piston_window::*;
-use memory::cartridge::Cartridge;
-use gpu::lcd::LCD;
-use emulator::gameboy::Gameboy;
-use emulator::renderer::Renderer;
-use gpu::ppu::PixelProcessingUnit;
-use simplelog::TestLogger;
-use simplelog::LevelFilter;
-use simplelog::Config;
-use simplelog::WriteLogger;
-use gpu::lcd::LCDFetcher;
+use crate::memory::cartridge::Cartridge;
+use crate::emulator::gameboy::Gameboy;
+use crate::emulator::renderer::Renderer;
+use crate::gpu::lcd::LCDFetcher;
 use std::sync::Mutex;
 
 
 fn main() {
-    let (filename, boot) = retrieve_options();
+    let (filename, _boot) = retrieve_options();
     setup_logging(&filename);
     let mut rom = File::open(filename).expect("file not found");
     let cartridge = Cartridge::new(read_game(&mut rom));
@@ -56,7 +41,7 @@ fn main() {
     let window = create_window();
     let mut renderer = Renderer::new(window, lcd);
     renderer.run();
-    handle.join();
+    handle.join().unwrap();
 }
 
 fn read_game(file: &mut File) -> Vec<u8>{
@@ -85,7 +70,7 @@ fn retrieve_options() -> (String, bool) {
 
 fn setup_logging(file_name: &str){
     let file_name = file_name.split("/").collect::<Vec<_>>().last().unwrap().to_string();
-    let log_path = format!("logs/{}.log", file_name);
+    let _log_path = format!("logs/{}.log", file_name);
     //WriteLogger::init(LevelFilter::Debug, Config::default(), File::create(log_path).unwrap()).unwrap();
     //TestLogger::init(LevelFilter::Debug, Config::default());
 }

@@ -1,13 +1,13 @@
-use processor::registers::Registers;
-use processor::registers::RegisterR;
-use processor::registers::RegisterSS;
-use util::bit_op;
-use util::memory_op;
-use processor::registers::Condition;
-use processor::registers::RegisterDD;
-use processor::registers::RegisterQQ;
-use processor::registers::FlagCalculationStatus::*;
-use processor::cpu::CPU;
+use super::registers::Registers;
+use super::registers::RegisterR;
+use super::registers::RegisterSS;
+use crate::util::bit_op;
+use crate::util::memory_op;
+use super::registers::Condition;
+use super::registers::RegisterDD;
+use super::registers::RegisterQQ;
+use super::registers::FlagCalculationStatus::*;
+use super::cpu::CPU;
 
 #[rustfmt::skip] const OPCODE_TABLE: [fn(u8, u16, &mut CPU) -> u8; 0x100] = [
     /*    x0       x1       x2        x3       x4        x5       x6         x7       x8        x9        xA        xB       xC        xD       xE         xF          */
@@ -1490,10 +1490,9 @@ fn rst_t(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
 /// DAA
 /// 00 100 111
 fn daa(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
-    let mut flag_n = cpu.registers.flag_n();
+    let flag_n = cpu.registers.flag_n();
     let mut flag_cy = cpu.registers.flag_cy();
     let mut flag_h = cpu.registers.flag_h();
-    let mut flag_z = cpu.registers.flag_z();
     let mut register_a = cpu.registers.a();
     debug!("{:#06X}: {:#04X} | DAA ({:#010b})", pc, opcode, register_a);
     if flag_n == 0 {
@@ -1512,7 +1511,7 @@ fn daa(opcode: u8, pc: u16, cpu: &mut CPU) -> u8{
             register_a = register_a.wrapping_sub(0x6);
         }
     }
-    flag_z = if register_a == 0 {1} else {0};
+    let flag_z = if register_a == 0 {1} else {0};
     flag_h = 0;
 
     cpu.registers.set_flags(flag_z, flag_n, flag_h, flag_cy);

@@ -1,8 +1,6 @@
 #[derive(Debug)]
 pub struct ReadOnly{memory: MemoryInternal}
 #[derive(Debug)]
-pub struct WriteOnly{memory: MemoryInternal}
-#[derive(Debug)]
 pub struct ReadWrite{memory: MemoryInternal}
 
 pub trait MapsMemory{
@@ -15,7 +13,6 @@ pub trait MapsMemory{
 #[derive(Debug)]
 pub enum Memory{
     ReadOnly{memory: ReadOnly},
-    WriteOnly{memory: WriteOnly},
     ReadWrite{memory: ReadWrite}
 }
 
@@ -23,11 +20,6 @@ impl Memory{
     pub fn new_read_only(values: &[u8], from: u16, to: u16) -> Memory{
         let memory = ReadOnly{memory: MemoryInternal::new(values, from, to)};
         Memory::ReadOnly{memory}
-    }
-
-    pub fn new_write_only(values: &[u8], from: u16, to: u16) -> Memory{
-        let memory = WriteOnly{memory: MemoryInternal::new(values, from, to)};
-        Memory::WriteOnly{memory}
     }
 
     pub fn new_read_write(values: &[u8], from: u16, to: u16) -> Memory{
@@ -41,16 +33,11 @@ impl MapsMemory for Memory{
         match self{
             Memory::ReadOnly{memory} => Ok(memory.read(address)),
             Memory::ReadWrite{memory} => Ok(memory.read(address)),
-            Memory::WriteOnly{memory: _} => Err(()),
         }
     }
 
     fn write(&mut self, address: u16, value: u8) -> Result<(), ()>{
         match self{
-            Memory::WriteOnly{memory} => {
-                memory.write(address, value);
-                Ok(())
-            },
             Memory::ReadWrite{memory} => {
                 memory.write(address, value);
                 Ok(())
@@ -62,7 +49,6 @@ impl MapsMemory for Memory{
     fn is_in_range(&self, address: u16) -> bool{
         let memory = match self{
             Memory::ReadOnly{memory} => &memory.memory,
-            Memory::WriteOnly{memory} => &memory.memory,
             Memory::ReadWrite{memory} => &memory.memory
         };
         memory.from <= address && address <= memory.to
@@ -74,14 +60,6 @@ impl ReadOnly{
         assert!(self.memory.from <= address && address <= self.memory.to);
         let offset = self.memory.from;
         self.memory.read(address - offset)
-    }
-}
-
-impl WriteOnly{
-    pub fn write(&mut self, address: u16, value: u8){
-        assert!(self.memory.from <= address && address <= self.memory.to);
-        let offset = self.memory.from;
-        self.memory.write(address - offset, value)
     }
 }
 
