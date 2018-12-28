@@ -20,6 +20,8 @@ use crate::emulator::gameboy::Gameboy;
 use crate::emulator::renderer::Renderer;
 use crate::gpu::lcd::LCDFetcher;
 use std::sync::Mutex;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 
 fn main() {
@@ -31,17 +33,13 @@ fn main() {
         Ok(mut boot_file) => Option::Some(read_game(&mut boot_file)),
         Err(_) => Option::None
     };
-    let lcd = Arc::new(Mutex::new(LCDFetcher::new()));
+    let lcd = Rc::new(RefCell::new(LCDFetcher::new()));
     let lcd_fetcher = lcd.clone();
-    let handle = thread::spawn(move || {
-        let mut gameboy = Gameboy::new(lcd_fetcher, cartridge, boot_rom);
-        gameboy.run();
-    });
+    let mut gameboy = Gameboy::new(lcd_fetcher, cartridge, boot_rom);
 
     let window = create_window();
-    let mut renderer = Renderer::new(window, lcd);
+    let mut renderer = Renderer::new(window, lcd, gameboy);
     renderer.run();
-    handle.join().unwrap();
 }
 
 fn read_game(file: &mut File) -> Vec<u8>{

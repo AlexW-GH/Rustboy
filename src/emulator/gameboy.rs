@@ -5,6 +5,8 @@ use crate::memory::cartridge::Cartridge;
 use std::time::Instant;
 use std::sync::Mutex;
 use crate::gpu::lcd::LCDFetcher;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 const NANO_CYCLE_TIME: i64 = 238;
 
@@ -13,47 +15,20 @@ pub struct Gameboy {
 }
 
 impl Gameboy {
-    pub fn new(lcd_fetcher: Arc<Mutex<LCDFetcher>>, cartridge: Cartridge, boot_rom: Option<Vec<u8>>) -> Gameboy{
+    pub fn new(lcd_fetcher: Rc<RefCell<LCDFetcher>>, cartridge: Cartridge, boot_rom: Option<Vec<u8>>) -> Gameboy{
         let interrupt = InterruptController::new();
         let cpu = CPU::new(interrupt, cartridge, lcd_fetcher, boot_rom);
         Gameboy{ cpu }
     }
 
-    pub fn run(&mut self){
-        let mut clock = ClockGenerator::new();
-        clock.reset();
-        loop{
-            clock.wait_next_tick();
+    pub fn step(&mut self, steps: usize){
+        for _ in 0 .. steps {
             self.cpu.step();
         }
     }
-}
 
-struct ClockGenerator{
-    time_spent: i64,
-    last_measure: Instant
-}
-
-impl ClockGenerator{
-    pub fn new() -> ClockGenerator{
-        let time_spent = 0;
-        let last_measure = Instant::now();
-        ClockGenerator{time_spent, last_measure}
-    }
-
-    pub fn reset(&mut self){
-        self.time_spent = 0;
-        self.last_measure = Instant::now();
-    }
-
-    pub fn wait_next_tick(&mut self){
-        loop {
-            self.time_spent += self.last_measure.elapsed().subsec_nanos() as i64;
-            if self.time_spent >= NANO_CYCLE_TIME{
-                self.time_spent -= NANO_CYCLE_TIME;
-                self.last_measure = Instant::now();
-                break
-            }
-        }
+    pub fn render_step(&mut self) {
+        use crate::gpu::ppu::TICKS_PER_CYCLE;
+        self.step(TICKS_PER_CYCLE)
     }
 }

@@ -1,9 +1,7 @@
-use std::sync::Arc;
 
 use image::imageops;
 use image::FilterType;
 use crate::gpu::lcd::LCDFetcher;
-use std::sync::Mutex;
 use piston_window::G2dTexture;
 use piston_window::Texture;
 use piston_window::TextureSettings;
@@ -13,6 +11,9 @@ use piston_window::Loop;
 use piston_window::Input;
 use piston_window::Size;
 use piston_window::Window;
+use crate::emulator::gameboy::Gameboy;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 const BG_TILES_HOR: u32 = 20;
 const BG_TILES_VER: u32 = 18;
@@ -23,15 +24,16 @@ pub const VER_PIXELS: u32 = BG_TILES_VER*BG_TILE_HEIGHT;
 
 pub struct Renderer {
     window: PistonWindow,
-    lcd: Arc<Mutex<LCDFetcher>>,
+    lcd: Rc<RefCell<LCDFetcher>>,
     window_width: u32,
     window_height: u32,
+    gameboy: Gameboy
 }
 
 impl Renderer {
-    pub fn new(window: PistonWindow, lcd: Arc<Mutex<LCDFetcher>>) -> Renderer {
+    pub fn new(window: PistonWindow, lcd: Rc<RefCell<LCDFetcher>>, gameboy: Gameboy) -> Renderer {
         let size: Size = window.size();
-        Renderer { window, lcd , window_width: size.width, window_height: size.height}
+        Renderer { window, lcd , window_width: size.width, window_height: size.height, gameboy}
     }
 
     pub fn run(&mut self) {
@@ -39,9 +41,8 @@ impl Renderer {
             match e {
                 Event::Loop(loop_event) => match loop_event {
                     Loop::Render(_r) => {
-                        let img = {
-                            self.lcd.lock().unwrap().image().clone()
-                        };
+                        self.gameboy.render_step();
+                        let img = self.lcd.borrow().image().clone();
                         let img = imageops::resize(&img, self.window_width, self.window_height, FilterType::CatmullRom);
                         let img: G2dTexture = Texture::from_image(
                             &mut self.window.factory,

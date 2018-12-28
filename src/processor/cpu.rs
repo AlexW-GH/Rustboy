@@ -7,6 +7,8 @@ use crate::gpu::ppu::PixelProcessingUnit;
 use crate::gpu::lcd::LCDFetcher;
 use std::sync::Mutex;
 use std::sync::Arc;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 pub struct CPU{
     pub registers: Registers,
@@ -22,7 +24,7 @@ pub struct CPU{
 }
 
 impl CPU {
-    pub fn new(interrupt: InterruptController, cartridge: Cartridge, lcd_fetcher: Arc<Mutex<LCDFetcher>>, boot_rom: Option<Vec<u8>>) -> CPU {
+    pub fn new(interrupt: InterruptController, cartridge: Cartridge, lcd_fetcher: Rc<RefCell<LCDFetcher>>, boot_rom: Option<Vec<u8>>) -> CPU {
 
         let boot_rom = match boot_rom {
             Some(opcodes) => Some(Memory::new_read_only(&opcodes, 0x0000, opcodes.len() as u16)),

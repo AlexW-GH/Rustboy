@@ -5,6 +5,8 @@ use super::lcd::LCDFetcher;
 use std::sync::Mutex;
 use std::sync::Arc;
 use crate::processor::interrupt_controller::InterruptController;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 // LCD Control Register
 const LCDC_REGISTER: u16 = 0xFF40;
@@ -24,7 +26,7 @@ const LINES_VBLANK: usize = 10;
 const TICKS_PER_LINE: usize = OAM_SEARCH_TICKS + PIXEL_TRANSFER_AND_HBLANK_TICKS;
 const TICKS_PER_LINE_END: usize = TICKS_PER_LINE - 1;
 const LINES_PER_CYCLE: usize = LINES_TO_DRAW + LINES_VBLANK;
-const TICKS_PER_CYCLE: usize = LINES_PER_CYCLE * TICKS_PER_LINE;
+pub const TICKS_PER_CYCLE: usize = LINES_PER_CYCLE * TICKS_PER_LINE;
 
 const TILES_IN_LINES: u16 = 0x14;
 
@@ -42,7 +44,7 @@ pub struct PixelProcessingUnit{
 }
 
 impl PixelProcessingUnit {
-    pub fn new(lcd_fetcher: Arc<Mutex<LCDFetcher>>) -> PixelProcessingUnit{
+    pub fn new(lcd_fetcher: Rc<RefCell<LCDFetcher>>) -> PixelProcessingUnit{
         let memory = Memory::new_read_write(&[0u8; 0], 0x8000, 0x9FFF);
         let oam = Memory::new_read_write(&[0u8; 0], 0xFE00, 0xFE9F);
 

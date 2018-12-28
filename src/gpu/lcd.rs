@@ -2,6 +2,8 @@ use image::ImageBuffer;
 use image::Rgba;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 const BG_TILES_HOR: u32 = 20;
 const BG_TILES_VER: u32 = 18;
@@ -11,12 +13,12 @@ pub const HOR_PIXELS: u32 = BG_TILES_HOR*BG_TILE_WIDTH;
 pub const VER_PIXELS: u32 = BG_TILES_VER*BG_TILE_HEIGHT;
 
 pub struct LCD{
-    lcd_fetcher: Arc<Mutex<LCDFetcher>>,
+    lcd_fetcher: Rc<RefCell<LCDFetcher>>,
     image: ImageBuffer<Rgba<u8>, Vec<u8>>
 }
 
 impl LCD{
-    pub fn new(lcd_fetcher: Arc<Mutex<LCDFetcher>>) -> LCD{
+    pub fn new(lcd_fetcher: Rc<RefCell<LCDFetcher>>) -> LCD{
         let image =ImageBuffer::from_fn(HOR_PIXELS, VER_PIXELS, |_, _| {
             Rgba([255u8; 4])
         });
@@ -37,7 +39,7 @@ impl LCD{
     }
 
     pub fn display(&self){
-        self.lcd_fetcher.lock().unwrap().set_image(self.image.clone())
+        self.lcd_fetcher.borrow_mut().set_image(self.image.clone())
     }
 }
 
