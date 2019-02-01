@@ -185,6 +185,8 @@ mod tests {
     use crate::util::memory_op::*;
     use crate::gpu::lcd::LCDFetcher;
     use std::sync::Mutex;
+    use std::rc::Rc;
+    use std::cell::RefCell;
 
     fn create_cpu(rom: Vec<u8>) -> CPU {
         let logger = TestLogger::init(LevelFilter::Debug, Config::default());
@@ -194,7 +196,7 @@ mod tests {
         let interrupt = InterruptController::new();
         let rom = add_header(rom);
         let cartridge = Cartridge::new(rom);
-        let lcd_fetcher = Arc::new(Mutex::new(LCDFetcher::new()));
+        let lcd_fetcher = Rc::new(RefCell::new(LCDFetcher::new()));
         let mut cpu = CPU::new(interrupt, cartridge, lcd_fetcher, None);
         cpu.registers.set_pc(0);
         cpu.registers.set_f(0x0);
@@ -1345,7 +1347,7 @@ mod tests {
             0xF8,
             0xFF,           // LD SP, 0xFFF8
             0b11_101_000,
-            2               // ADD HL, BC
+            2               // ADD SP, 2
 
         ];
         let mut cpu = create_cpu(rom);

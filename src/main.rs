@@ -22,17 +22,22 @@ use crate::gpu::lcd::LCDFetcher;
 use std::sync::Mutex;
 use std::rc::Rc;
 use std::cell::RefCell;
+use simplelog::TestLogger;
+use simplelog::LevelFilter;
+use simplelog::Config;
 
 
 fn main() {
-    let (filename, _boot) = retrieve_options();
+    let (filename, boot) = retrieve_options();
     setup_logging(&filename);
     let mut rom = File::open(filename).expect("file not found");
     let cartridge = Cartridge::new(read_game(&mut rom));
-    let boot_rom = match File::open( "assets/boot.gb"){
-        Ok(mut boot_file) => Option::Some(read_game(&mut boot_file)),
-        Err(_) => Option::None
-    };
+    let boot_rom = if boot {
+        match File::open("assets/boot.gb") {
+            Ok(mut boot_file) => Option::Some(read_game(&mut boot_file)),
+            Err(_) => Option::None
+        }
+    } else { Option::None };
     let lcd = Rc::new(RefCell::new(LCDFetcher::new()));
     let lcd_fetcher = lcd.clone();
     let mut gameboy = Gameboy::new(lcd_fetcher, cartridge, boot_rom);
@@ -70,13 +75,16 @@ fn setup_logging(file_name: &str){
     let file_name = file_name.split("/").collect::<Vec<_>>().last().unwrap().to_string();
     let _log_path = format!("logs/{}.log", file_name);
     //WriteLogger::init(LevelFilter::Debug, Config::default(), File::create(log_path).unwrap()).unwrap();
-    //TestLogger::init(LevelFilter::Debug, Config::default());
+    TestLogger::init(LevelFilter::Debug, Config::default());
 }
 
 fn create_window() -> PistonWindow{
     WindowSettings::new("Rustboy", (emulator::renderer::HOR_PIXELS*3, emulator::renderer::VER_PIXELS*3))
         .exit_on_esc(true)
+        .opengl(OpenGL::V3_2)
         .resizable(true)
+        .vsync(false)
         .build()
         .unwrap_or_else(|e| { panic!("Failed to build PistonWindow: {}", e) })
+
 }

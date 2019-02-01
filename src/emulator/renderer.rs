@@ -11,6 +11,7 @@ use piston_window::Loop;
 use piston_window::Input;
 use piston_window::Size;
 use piston_window::Window;
+use piston_window::EventLoop;
 use crate::emulator::gameboy::Gameboy;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -31,8 +32,9 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(window: PistonWindow, lcd: Rc<RefCell<LCDFetcher>>, gameboy: Gameboy) -> Renderer {
+    pub fn new(mut window: PistonWindow, lcd: Rc<RefCell<LCDFetcher>>, gameboy: Gameboy) -> Renderer {
         let size: Size = window.size();
+        window.events.set_max_fps(60);
         Renderer { window, lcd , window_width: size.width, window_height: size.height, gameboy}
     }
 

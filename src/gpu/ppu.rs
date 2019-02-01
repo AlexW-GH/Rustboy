@@ -16,9 +16,9 @@ const SCY_REGISTER: u16 = 0xFF42;
 const SCX_REGISTER: u16 = 0xFF43;
 const LY_REGISTER: u16 = 0xFF44;
 
-const OAM_SEARCH_TICKS: usize = 20 * 2;
+const OAM_SEARCH_TICKS: usize = 20 * 4;
 const OAM_SEARCH_TICKS_END: usize = OAM_SEARCH_TICKS - 1;
-const PIXEL_TRANSFER_AND_HBLANK_TICKS: usize = 94 * 2;
+const PIXEL_TRANSFER_AND_HBLANK_TICKS: usize = 94 * 4;
 
 const LINES_TO_DRAW: usize = 144;
 const LINES_VBLANK: usize = 10;
@@ -30,6 +30,13 @@ pub const TICKS_PER_CYCLE: usize = LINES_PER_CYCLE * TICKS_PER_LINE;
 
 const TILES_IN_LINES: u16 = 0x14;
 
+pub enum PPUMode{
+    HBLANK = 0,
+    VBLANK = 1,
+    OAMSEARCH = 2,
+    TRANSFER = 3
+}
+
 pub struct PixelProcessingUnit{
     memory: Memory,
     oam: Memory,
@@ -39,8 +46,9 @@ pub struct PixelProcessingUnit{
     fetcher: Fetcher,
 
     current_tick: usize,
-    current_pixel: usize,
-    vblank_set: bool,
+    current_pixel: u8,
+    current_line: u8,
+    mode: PPUMode,
 }
 
 impl PixelProcessingUnit {
@@ -53,59 +61,82 @@ impl PixelProcessingUnit {
         let fetcher = Fetcher::new();
         let current_tick = 0;
         let current_pixel = 0;
-        PixelProcessingUnit{memory, oam, lcd, pixel_fifo, fetcher, current_tick, current_pixel, vblank_set: false}
+        let current_line = 0;
+        PixelProcessingUnit{memory, oam, lcd, pixel_fifo, fetcher, current_tick,
+            current_pixel, mode: PPUMode::OAMSEARCH, current_line}
     }
 
     pub fn step(&mut self, io_registers: &mut Memory, _interrupt: &mut InterruptController){
-        match self.current_tick % TICKS_PER_LINE as usize {
-            0 ..= OAM_SEARCH_TICKS_END => self.oam_search(io_registers),
-            OAM_SEARCH_TICKS ..= TICKS_PER_LINE_END => self.pixel_transfer(io_registers),
-            _ => panic!()
+        match self.mode{
+            PPUMode::HBLANK => self.h_blank(io_registers),
+            PPUMode::VBLANK => self.v_blank(io_registers),
+            PPUMode::OAMSEARCH => self.oam_search(io_registers),
+            PPUMode::TRANSFER =>  self.pixel_transfer(io_registers),
         }
 
-        if self.current_tick < TICKS_PER_CYCLE {
+        if self.current_tick <= TICKS_PER_CYCLE {
             self.current_tick += 1;
         } else {
             self.current_tick = 0;
-            self.vblank_set = false;
             self.pixel_fifo.reset();
             self.fetcher.reset();
         }
     }
 
+    pub fn v_blank(&mut self, io_registers: &mut Memory){
+        if (self.current_tick+1) % TICKS_PER_LINE == 0 {
+            if (self.current_tick+1) % TICKS_PER_CYCLE == 0 {
+                self.mode = PPUMode::OAMSEARCH;
+                self.current_line = 0;
+            } else {
+                self.current_line += 1;
+            }
+
+            self.current_pixel = 0;
+            io_registers.write(LY_REGISTER, self.current_line).unwrap();
+        }
+
+    }
+
+    pub fn h_blank(&mut self, io_registers: &mut Memory){
+        if (self.current_tick+1) % TICKS_PER_LINE == 0 {
+            if self.current_line as usize == LINES_TO_DRAW {
+                self.mode = PPUMode::VBLANK;
+                self.current_line = 0;
+                self.lcd.display();
+            } else {
+                self.mode = PPUMode::OAMSEARCH;
+                self.current_line += 1;
+            }
+
+            self.current_pixel = 0;
+            io_registers.write(LY_REGISTER, self.current_line).unwrap();
+        }
+    }
+
     pub fn oam_search(&mut self, _io_registers: &mut Memory){
+        if(((self.current_tick+1) % TICKS_PER_LINE) % OAM_SEARCH_TICKS) == 0{
+            self.mode = PPUMode::TRANSFER;
+        }
         //Todo!
         //println!("oam search @ tick: {}", self.current_tick);
     }
 
     pub fn pixel_transfer(&mut self, io_registers: &mut Memory){
-        let line = (self.current_tick / TICKS_PER_LINE) as u8;
-        io_registers.write(LY_REGISTER, line).unwrap();
-        if (self.current_tick - OAM_SEARCH_TICKS) % TICKS_PER_LINE as usize == 0 {
-            self.current_pixel = 0;
-        }
-        if (line as usize) < LINES_TO_DRAW {
+        if (self.current_line as usize) < LINES_TO_DRAW {
             if self.current_pixel < 160{
                 if self.current_tick % 2 == 1 {
                     self.fetcher.fetch_tile(&mut self.pixel_fifo, &self.memory, io_registers);
                 }
-                self.current_pixel += self.pixel_fifo.write_pixel(&mut self.lcd, self.current_pixel as u32, line as u32);
-            } else if self.current_pixel == 160 {
-                //Todo: HBLANK!
-                //println!("HBLANK!!!");
-                self.current_pixel += 1;
-            } else {
-                self.current_pixel += 1;
-                //println!("HBLANK pixel");
+                self.pixel_fifo.write_pixel(&mut self.lcd, &mut self.current_pixel, self.current_line);
+
+            } else if self.current_pixel >= 160 {
+                self.mode = PPUMode::HBLANK;
+                self.current_pixel = 0;
             }
-        } else if line as usize == LINES_TO_DRAW {
-            if !self.vblank_set {
-                //println!("VBLANK!!!!");
-                self.vblank_set = true;
+        } else if self.current_line as usize == LINES_TO_DRAW {
+                self.mode = PPUMode::VBLANK;
                 self.lcd.display();
-            }
-        } else {
-            //println!("VBLANK pixel");
         }
     }
 }
@@ -148,13 +179,12 @@ impl PixelFifo{
         PixelFifo { current_size: 0, color_queue: 0}
     }
 
-    pub fn write_pixel(&mut self, lcd: &mut LCD, pixel_in_line: u32, line: u32) -> usize{
+    pub fn write_pixel(&mut self, lcd: &mut LCD, pixel_in_line: &mut u8, line: u8){
         if self.current_size >= 8 {
             let color = self.pop();
-            lcd.set_pixel(pixel_in_line,line, color);
-            return 1;
+            lcd.set_pixel(*pixel_in_line as u32,line as u32, color);
+            *pixel_in_line += 1;
         }
-        return 0;
     }
 
     fn pop(&mut self) -> u8{

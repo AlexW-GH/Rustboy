@@ -11,10 +11,12 @@ const BG_TILE_WIDTH: u32 = 8;
 const BG_TILE_HEIGHT: u32 = 8;
 pub const HOR_PIXELS: u32 = BG_TILES_HOR*BG_TILE_WIDTH;
 pub const VER_PIXELS: u32 = BG_TILES_VER*BG_TILE_HEIGHT;
+pub const PIXELS: u32 = HOR_PIXELS * VER_PIXELS;
 
 pub struct LCD{
     lcd_fetcher: Rc<RefCell<LCDFetcher>>,
-    image: ImageBuffer<Rgba<u8>, Vec<u8>>
+    image: ImageBuffer<Rgba<u8>, Vec<u8>>,
+    calc_pos: u32,
 }
 
 impl LCD{
@@ -22,12 +24,16 @@ impl LCD{
         let image =ImageBuffer::from_fn(HOR_PIXELS, VER_PIXELS, |_, _| {
             Rgba([255u8; 4])
         });
-        LCD{image, lcd_fetcher}
+        LCD{image, lcd_fetcher, calc_pos: 0}
     }
 
     pub fn set_pixel(&mut self, x: u32, y: u32, color: u8){
         //Todo: correct colors
+        if self.calc_pos == PIXELS {
+            self.calc_pos = 0;
+        }
         //println!("Color: {} @ {},{}", color, x, y);
+        assert_eq!(self.calc_pos, HOR_PIXELS*y+x);
         let pixel = match color {
             0b00 => Rgba([255u8, 255u8, 255u8, 255u8]),
             0b01 => Rgba([180u8, 180u8, 180u8, 255u8]),
@@ -35,6 +41,7 @@ impl LCD{
             0b11 => Rgba([0u8, 0u8, 0u8, 255u8]),
             _ => panic!("That's not a color"),
         };
+        self.calc_pos += 1;
         self.image.put_pixel(x, y, pixel)
     }
 

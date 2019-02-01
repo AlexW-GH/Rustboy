@@ -58,7 +58,8 @@ fn extended(_: u8, pc: u16, cpu: &mut CPU) -> u8{
     OPCODE_EXT_TABLE[extended_opcode as usize](extended_opcode, pc, cpu)
 }
 
-fn unsupp(opcode: u8, _: u16, _: &mut CPU) -> u8{
+fn unsupp(opcode: u8, pc: u16, _: &mut CPU) -> u8{
+    debug!("{:#06X}: {:#04X} | not supported)", pc, opcode);
     panic!("Opcode {:#04x} not supported", opcode);
 }
 
@@ -373,7 +374,7 @@ fn ldhl_sp_e(opcode: u8, _: u16, cpu: &mut CPU) -> u8{
     let sp = cpu.registers.sp();
     let value = memory_op::read_memory_following_u8(cpu, pc);
     debug!("{:#06X}: {:#04X} | LDHL {:?}, {:?}", pc, opcode, RegisterDD::SP, value);
-    cpu.registers.set_flags_add_i8((sp & 0xFF) as u8, value as i8 , 0, Clear, Clear, Calculate, Calculate);
+    cpu.registers.set_flags_add((sp & 0xFF) as u8, value , 0, Clear, Clear, Calculate, Calculate);
     let result = add_signed(sp, value);
     cpu.registers.set_hl(result);
     cpu.registers.inc_pc(2);
@@ -826,7 +827,8 @@ fn add_sp_e(opcode: u8, _: u16, cpu: &mut CPU) -> u8{
     let val_n = memory_op::read_memory_following_u8(cpu, pc);
     debug!("{:#06X}: {:#04X} | ADD  {:?}({:?}), ({:?})", pc, opcode, RegisterSS::SP, val_sp, val_n);
     let result = add_signed(val_sp, val_n);
-    cpu.registers.set_flags_add_i8((val_sp & 0xFF) as u8, val_n as i8, 0, Clear, Clear, Calculate, Calculate);
+    debug!("Result: {:#06X}", result);
+    cpu.registers.set_flags_add((val_sp & 0xFF) as u8, val_n, 0, Clear, Clear, Calculate, Calculate);
     cpu.registers.set_sp(result);
     cpu.registers.inc_pc(2);
     16

@@ -410,7 +410,7 @@ impl Registers {
         let carry = carry as i16;
         match z {
             FlagCalculationStatus::Set => bit_op::set_bit(flags, 7),
-            FlagCalculationStatus::Clear => bit_op::set_bit(flags, 7),
+            FlagCalculationStatus::Clear => bit_op::clear_bit(flags, 7),
             FlagCalculationStatus::Ignore => flags,
             FlagCalculationStatus::Calculate => {
                 let result = match operation{
@@ -752,9 +752,9 @@ mod tests {
     fn set_af_correct() {
         let mut registers = Registers::new(false);
         registers.set_af(0xABCD);
-        assert_eq!(registers.af(), 0xABCD);
+        assert_eq!(registers.af(), 0xABCD & 0xFFF0);
         assert_eq!(registers.a(), 0xAB);
-        assert_eq!(registers.f(), 0xCD);
+        assert_eq!(registers.f(), 0xCD & 0xF0);
     }
 
     #[test]
@@ -762,9 +762,9 @@ mod tests {
         let mut registers = Registers::new(false);
         registers.set_a(0xAB);
         registers.set_f(0xCD);
-        assert_eq!(registers.af(), 0xABCD);
+        assert_eq!(registers.af(), 0xABCD & 0xFFF0);
         assert_eq!(registers.a(), 0xAB);
-        assert_eq!(registers.f(), 0xCD);
+        assert_eq!(registers.f(), 0xCD & 0xF0);
     }
 
     #[test]
@@ -780,9 +780,9 @@ mod tests {
     fn set_f_singles_correct() {
         let mut registers = Registers::new(false);
         registers.set_f(0xCD);
-        assert_eq!(registers.af(), 0x01CD);
+        assert_eq!(registers.af(), 0x01CD & 0xFFF0);
         assert_eq!(registers.a(), 0x01);
-        assert_eq!(registers.f(), 0xCD);
+        assert_eq!(registers.f(), 0xCD & 0xF0);
     }
 
     #[test]
