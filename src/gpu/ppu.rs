@@ -1,9 +1,7 @@
-use crate::memory::memory::Memory;
-use crate::memory::memory::MapsMemory;
+use crate::mem::memory::Memory;
+use crate::mem::memory::MapsMemory;
 use super::lcd::LCD;
 use super::lcd::LCDFetcher;
-use std::sync::Mutex;
-use std::sync::Arc;
 use crate::processor::interrupt_controller::InterruptController;
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -17,14 +15,12 @@ const SCX_REGISTER: u16 = 0xFF43;
 const LY_REGISTER: u16 = 0xFF44;
 
 const OAM_SEARCH_TICKS: usize = 20 * 4;
-const OAM_SEARCH_TICKS_END: usize = OAM_SEARCH_TICKS - 1;
 const PIXEL_TRANSFER_AND_HBLANK_TICKS: usize = 94 * 4;
 
 const LINES_TO_DRAW: usize = 144;
 const LINES_VBLANK: usize = 10;
 
 const TICKS_PER_LINE: usize = OAM_SEARCH_TICKS + PIXEL_TRANSFER_AND_HBLANK_TICKS;
-const TICKS_PER_LINE_END: usize = TICKS_PER_LINE - 1;
 const LINES_PER_CYCLE: usize = LINES_TO_DRAW + LINES_VBLANK;
 pub const TICKS_PER_CYCLE: usize = LINES_PER_CYCLE * TICKS_PER_LINE;
 
@@ -182,21 +178,21 @@ impl PixelFifo{
     pub fn write_pixel(&mut self, lcd: &mut LCD, pixel_in_line: &mut u8, line: u8){
         if self.current_size >= 8 {
             let color = self.pop();
-            lcd.set_pixel(*pixel_in_line as u32,line as u32, color);
+            lcd.set_pixel(u32::from(*pixel_in_line),u32::from(line), color);
             *pixel_in_line += 1;
         }
     }
 
     fn pop(&mut self) -> u8{
         let color = ((self.color_queue >> 30) & 0b11) as u8;
-        self.color_queue = self.color_queue << 2;
+        self.color_queue <<= 2;
         self.current_size -= 1;
         color
     }
 
     pub fn push(&mut self, pixels: u16){
         assert!(self.current_size < 8);
-        self.color_queue |= (pixels as u32) << ((16 - self.current_size) - 8);
+        self.color_queue |= u32::from(pixels) << ((16 - self.current_size) - 8);
         self.current_size += 8;
     }
 
@@ -253,12 +249,12 @@ impl Fetcher{
     fn read_tile(&mut self, vram: &Memory, io_registers: &mut Memory) {
         let lcd_control_register = io_registers.read(LCDC_REGISTER).unwrap();
         let bg_map_address = if (lcd_control_register >> 3) & 1 == 0 { 0x9800 } else { 0x9C00 };
-        let _scx = io_registers.read(SCX_REGISTER).unwrap() as u16;
+        let _scx = u16::from(io_registers.read(SCX_REGISTER).unwrap());
         let scy = io_registers.read(SCY_REGISTER).unwrap();
-        let tile_map_address = bg_map_address + self.current_tile_address + (((self.current_map_line.wrapping_add(scy) as u8) / 8) as u16) * 0x20;
+        let tile_map_address = bg_map_address + self.current_tile_address + u16::from((self.current_map_line.wrapping_add(scy) as u8) / 8) * 0x20;
         //println!("line: {:#04x} | scy: {} | bg_map_address: {:#06x} | tile: {:#06x} | translated line: {:#04x} | tile_map_address: {:#06x}", self.current_map_line, scy, bg_map_address, self.current_tile_address, ((self.current_map_line.wrapping_add(scy) / 8) as u16), tile_map_address);
-        self.current_tile_number = vram.read(tile_map_address).unwrap() as u16;
-        self.current_tile_address = self.current_tile_address +1;
+        self.current_tile_number = u16::from(vram.read(tile_map_address).unwrap());
+        self.current_tile_address += 1;
         self.current_step = self.current_step.next();
     }
 
@@ -266,14 +262,14 @@ impl Fetcher{
         let lcd_control_register = io_registers.read(LCDC_REGISTER).unwrap();
         let bg_tiles_address = if (lcd_control_register >> 4) & 1 == 0 { 0x9000 } else { 0x8000 };
         if bg_tiles_address == 0x8000 {
-            self.data0 = vram.read(bg_tiles_address + ((self.current_map_line % 8) * 0x2) as u16 + (self.current_tile_number * 0x10)).unwrap();
+            self.data0 = vram.read(bg_tiles_address + u16::from((self.current_map_line % 8) * 0x2) + (self.current_tile_number * 0x10)).unwrap();
             if self.current_map_line % 8 == 0 {
                 //println!("data0 ({:#06x}), {:#010b}", bg_tiles_address + ((self.current_map_line % 8) * 0x2) as u16 + (self.current_tile_number * 0x10), self.data0);
             }
         } else if bg_tiles_address == 0x9000 {
             // Todo: Recheck later
             let mapped_tile = self.current_tile_number as i8;
-            self.data0 = vram.read((bg_tiles_address as i32 + ((self.current_map_line as i32 % 8) * 0x2) + (mapped_tile as i32* 0x10) as i32) as u16).unwrap();
+            self.data0 = vram.read((i32::from(bg_tiles_address) + ((i32::from(self.current_map_line) % 8) * 0x2) + (i32::from(mapped_tile) * 0x10) as i32) as u16).unwrap();
         } else { unimplemented!() }
         self.current_step = self.current_step.next();
     }
@@ -282,14 +278,14 @@ impl Fetcher{
         let lcd_control_register = io_registers.read(LCDC_REGISTER).unwrap();
         let bg_tiles_address = if (lcd_control_register >> 4) & 1 == 0 { 0x9000 } else { 0x8000 } + 1;
         if bg_tiles_address == 0x8001 {
-            self.data1 = vram.read(bg_tiles_address + ((self.current_map_line % 8) * 0x2) as u16 + (self.current_tile_number * 0x10)).unwrap();
+            self.data1 = vram.read(bg_tiles_address + u16::from((self.current_map_line % 8) * 0x2) + (self.current_tile_number * 0x10)).unwrap();
             if self.current_map_line % 8 == 0 {
                 //println!("data1 ({:#06x}), {:#010b}", bg_tiles_address + ((self.current_map_line % 8) * 0x2) as u16 + (self.current_tile_number * 0x10), self.data1);
             }
         } else if bg_tiles_address == 0x9001 {
             // Todo: Recheck later
-            let _mapped_tile = self.current_tile_number as i32;
-            self.data1 = vram.read((bg_tiles_address as i32 + ((self.current_map_line as i32 % 8) * 0x2) + (self.current_tile_number * 0x10) as i32) as u16).unwrap();
+            let _mapped_tile = i32::from(self.current_tile_number);
+            self.data1 = vram.read((i32::from(bg_tiles_address) + ((i32::from(self.current_map_line) % 8) * 0x2) + i32::from(self.current_tile_number * 0x10)) as u16).unwrap();
         } else { unimplemented!() }
         self.current_step = self.current_step.next();
         self.write_data(pixel_fifo);
@@ -308,14 +304,14 @@ impl Fetcher{
 
     fn combine_pixels(&mut self) -> u16 {
         let mut result: u16 = 0;
-        result = result | ((((self.data1 >> 7) & 1) << 1 | ((self.data0 >> 7) & 1)) as u16) << 14;
-        result = result | ((((self.data1 >> 6) & 1) << 1 | ((self.data0 >> 6) & 1)) as u16) << 12;
-        result = result | ((((self.data1 >> 5) & 1) << 1 | ((self.data0 >> 5) & 1)) as u16) << 10;
-        result = result | ((((self.data1 >> 4) & 1) << 1 | ((self.data0 >> 4) & 1)) as u16) << 8;
-        result = result | ((((self.data1 >> 3) & 1) << 1 | ((self.data0 >> 3) & 1)) as u16) << 6;
-        result = result | ((((self.data1 >> 2) & 1) << 1 | ((self.data0 >> 2) & 1)) as u16) << 4;
-        result = result | ((((self.data1 >> 1) & 1) << 1 | ((self.data0 >> 1) & 1)) as u16) << 2;
-        result = result | ((((self.data1 >> 0) & 1) << 1 | ((self.data0 >> 0) & 1)) as u16) << 0;
+        result |= u16::from(((self.data1 >> 7) & 1) << 1 | ((self.data0 >> 7) & 1)) << 14;
+        result |= u16::from(((self.data1 >> 6) & 1) << 1 | ((self.data0 >> 6) & 1)) << 12;
+        result |= u16::from(((self.data1 >> 5) & 1) << 1 | ((self.data0 >> 5) & 1)) << 10;
+        result |= u16::from(((self.data1 >> 4) & 1) << 1 | ((self.data0 >> 4) & 1)) << 8;
+        result |= u16::from(((self.data1 >> 3) & 1) << 1 | ((self.data0 >> 3) & 1)) << 6;
+        result |= u16::from(((self.data1 >> 2) & 1) << 1 | ((self.data0 >> 2) & 1)) << 4;
+        result |= u16::from(((self.data1 >> 1) & 1) << 1 | ((self.data0 >> 1) & 1)) << 2;
+        result |= u16::from(((self.data1     ) & 1) << 1 | ((self.data0     ) & 1));
         //println!("Combined Pixels: {:#018b}", result);
         result
     }

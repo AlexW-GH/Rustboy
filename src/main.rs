@@ -4,22 +4,18 @@ extern crate log;
 mod processor;
 mod emulator;
 mod gpu;
-mod memory;
+mod mem;
 mod util;
-
-use std::sync::Arc;
-use std::thread;
 
 use std::fs::File;
 use std::io::Read;
 
 use clap::{Arg, App};
 use piston_window::*;
-use crate::memory::cartridge::Cartridge;
+use crate::mem::cartridge::Cartridge;
 use crate::emulator::gameboy::Gameboy;
 use crate::emulator::renderer::Renderer;
 use crate::gpu::lcd::LCDFetcher;
-use std::sync::Mutex;
 use std::rc::Rc;
 use std::cell::RefCell;
 use simplelog::TestLogger;
@@ -28,7 +24,7 @@ use simplelog::Config;
 
 
 fn main() {
-    let (filename, boot) = retrieve_options();
+    let (filename, boot, speed) = retrieve_options();
     setup_logging(&filename);
     let mut rom = File::open(filename).expect("file not found");
     let cartridge = Cartridge::new(read_game(&mut rom));
@@ -40,10 +36,12 @@ fn main() {
     } else { Option::None };
     let lcd = Rc::new(RefCell::new(LCDFetcher::new()));
     let lcd_fetcher = lcd.clone();
-    let mut gameboy = Gameboy::new(lcd_fetcher, cartridge, boot_rom);
+    let gameboy = Gameboy::new(lcd_fetcher, cartridge, boot_rom);
 
     let window = create_window();
-    let mut renderer = Renderer::new(window, lcd, gameboy);
+    let fps = (60.0 * speed).floor() as u64;
+    println!("FPS: {}", fps);
+    let mut renderer = Renderer::new(window, lcd, gameboy, fps);
     renderer.run();
 }
 
@@ -53,7 +51,7 @@ fn read_game(file: &mut File) -> Vec<u8>{
     game
 }
 
-fn retrieve_options() -> (String, bool) {
+fn retrieve_options() -> (String, bool, f64) {
     let matches = App::new("Rustboy")
         .version("0.1")
         .author("Alexander W.")
@@ -62,26 +60,33 @@ fn retrieve_options() -> (String, bool) {
             .help("path of game to play")
             .required(true))
         .arg(Arg::with_name("boot")
-                 .help("enable boot sequence")
-                 .short("b")
-                 .long("boot"))
+            .help("enable boot sequence")
+            .short("b")
+            .long("boot"))
+        .arg(Arg::with_name("speed")
+            .help("Adjust emulator speed")
+            .default_value("1.0")
+            .number_of_values(1)
+            .short("s")
+            .long("speed")
+        )
         .get_matches();
     let game = matches.value_of("game").unwrap().to_string();
     let boot = matches.is_present("boot");
-    (game, boot)
+    let speed = matches.value_of("speed").map(|val| val.parse::<f64>().unwrap_or_else(|_| 1.0)).unwrap_or_else(|| 1.0);
+    (game, boot, speed)
 }
 
 fn setup_logging(file_name: &str){
-    let file_name = file_name.split("/").collect::<Vec<_>>().last().unwrap().to_string();
+    let file_name = file_name.split('/').collect::<Vec<_>>().last().unwrap().to_string();
     let _log_path = format!("logs/{}.log", file_name);
     //WriteLogger::init(LevelFilter::Debug, Config::default(), File::create(log_path).unwrap()).unwrap();
-    TestLogger::init(LevelFilter::Debug, Config::default());
+    //TestLogger::init(LevelFilter::Debug, Config::default());
 }
 
 fn create_window() -> PistonWindow{
     WindowSettings::new("Rustboy", (emulator::renderer::HOR_PIXELS*3, emulator::renderer::VER_PIXELS*3))
         .exit_on_esc(true)
-        .opengl(OpenGL::V3_2)
         .resizable(true)
         .vsync(false)
         .build()

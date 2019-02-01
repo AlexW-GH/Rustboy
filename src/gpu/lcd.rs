@@ -1,7 +1,5 @@
 use image::ImageBuffer;
 use image::Rgba;
-use std::sync::Arc;
-use std::sync::Mutex;
 use std::rc::Rc;
 use std::cell::RefCell;
 

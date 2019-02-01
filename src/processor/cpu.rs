@@ -1,12 +1,10 @@
 use crate::processor::registers::Registers;
 use crate::processor::interrupt_controller::InterruptController;
 use crate::processor::opcodes;
-use crate::memory::memory::{Memory, MapsMemory};
-use crate::memory::cartridge::Cartridge;
+use crate::mem::memory::{Memory, MapsMemory};
+use crate::mem::cartridge::Cartridge;
 use crate::gpu::ppu::PixelProcessingUnit;
 use crate::gpu::lcd::LCDFetcher;
-use std::sync::Mutex;
-use std::sync::Arc;
 use std::rc::Rc;
 use std::cell::RefCell;
 
@@ -50,7 +48,7 @@ impl CPU {
             let pc = self.registers.pc();
             let opcode = self.read(pc).unwrap();
             //println!("pc: {:#06x} | opcode: {:#04x}", pc, opcode);
-            self.cpu_wait_cycles += opcodes::execute(opcode, pc, self) as i64;
+            self.cpu_wait_cycles += i64::from(opcodes::execute(opcode, pc, self));
         }
         self.cpu_wait_cycles -= 1;
     }
@@ -120,12 +118,10 @@ impl MapsMemory for CPU {
                 self.cartridge.read(address)
             } else if self.io_registers.is_in_range(address) {
                 self.io_registers.read(address)
+            } else if address >= 0xFEA0 && address <= 0xFEFF{
+                Ok(0xFF)
             } else {
-                if address >= 0xFEA0 && address <= 0xFEFF{
-                    Ok(0xFF)
-                } else {
-                    Err(())
-                }
+                Err(())
             }
         } else{
             read
@@ -142,30 +138,25 @@ impl MapsMemory for CPU {
                 self.write(address - 0x2000, value).unwrap();
             }
             write
-        } else {
-            if self.ppu.is_in_range(address) {
-                self.ppu.write(address, value)
-            } else if self.cartridge.is_in_range(address){
-                self.cartridge.write(address, value)
-            } else if self.io_registers.is_in_range(address) {
-                if address == 0xFF50 {
-                    self.boot_rom = None;
-                }
-                self.io_registers.write(address, value)
-            } else {
-                if address >= 0xFEA0 && address <= 0xFEFF{
-                    Ok(())
-                } else {
-                    Err(())
-                }
+        } else if self.ppu.is_in_range(address) {
+            self.ppu.write(address, value)
+        } else if self.cartridge.is_in_range(address){
+            self.cartridge.write(address, value)
+        } else if self.io_registers.is_in_range(address) {
+            if address == 0xFF50 {
+                self.boot_rom = None;
             }
+            self.io_registers.write(address, value)
+        } else if address >= 0xFEA0 && address <= 0xFEFF{
+            Ok(())
+        } else {
+            Err(())
         }
     }
 
     fn is_in_range(&self, address: u16) -> bool{
         let mut read = self.memory.iter()
-            .find(|mem| mem.is_in_range(address))
-            .is_some();
+            .any(|mem| mem.is_in_range(address));
         read |= self.cartridge.is_in_range(address);
         read |= self.ppu.is_in_range(address);
         read
@@ -181,7 +172,7 @@ mod tests {
     use simplelog::TestLogger;
     use crate::processor::cpu::CPU;
     use crate::processor::interrupt_controller::InterruptController;
-    use crate::memory::cartridge::Cartridge;
+    use crate::mem::cartridge::Cartridge;
     use crate::util::memory_op::*;
     use crate::gpu::lcd::LCDFetcher;
     use std::sync::Mutex;
@@ -2204,7 +2195,7 @@ fn sra_a() {
             0b00_110_111,   // SWAP A
             0b11_000_011,
             0x00,
-            0x80,          // JP 0x7FFC
+            0x80,          // JP 0x8000
 
         ];
         let mut cpu = create_cpu(rom);

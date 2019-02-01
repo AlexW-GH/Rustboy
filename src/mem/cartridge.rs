@@ -21,7 +21,7 @@ impl CartridgeHeader{
     pub fn new(rom: &[u8]) -> CartridgeHeader {
         let title = Self::extract_title(rom);
         let manufacturer = String::new();
-        let licensee_code = ((rom[0x144] as u16) << 8) + rom[0x145] as u16;
+        let licensee_code = (u16::from(rom[0x144]) << 8) + u16::from(rom[0x145]);
         let cartridge_type = CartridgeType::new(rom[0x147]);
         let rom_size = RomSize::new(rom[0x148]);
         let ram_size = RamSize::new(rom[0x149]);
@@ -29,21 +29,21 @@ impl CartridgeHeader{
         let old_licensee_code = rom[0x14B];
         let version = rom[0x14C];
         let checksum = rom[0x14D];
-        let global_checksum = ((rom[0x14E] as u16) << 8) + rom[0x14F] as u16;
+        let global_checksum = (u16::from(rom[0x14E]) << 8) + u16::from(rom[0x14F]);
         let header = CartridgeHeader{title, manufacturer, licensee_code, cartridge_type, rom_size, ram_size, destination, old_licensee_code, version, checksum, global_checksum};
         info!("Load Rom: {:?}", header);
-        return header;
+
+        header
     }
 
 
     fn extract_title(rom: &[u8]) -> String {
         let mut title = Vec::new();
-        for i in 0x134..0x144 {
-            let char = rom[i];
-            if char == 0 { break }
-            title.push(char)
+        for &character in rom.iter().take(0x144).skip(0x134){
+            if character == 0 { break }
+            title.push(character)
         }
-        String::from_utf8(title).unwrap_or("".to_string())
+        String::from_utf8(title).unwrap_or_else(|_| "".to_string())
     }
 }
 
@@ -93,15 +93,15 @@ pub enum RomSize{
 impl RomSize{
     pub fn new(code: u8) -> RomSize{
         match code{
-            00 => RomSize::KB32,
-            01 => RomSize::KB64,
-            02 => RomSize::KB128,
-            03 => RomSize::KB256,
-            04 => RomSize::KB512,
-            05 => RomSize::KB1024,
-            06 => RomSize::KB2048,
-            07 => RomSize::KB4096,
-            08 => RomSize::KB8192,
+            0x00 => RomSize::KB32,
+            0x01 => RomSize::KB64,
+            0x02 => RomSize::KB128,
+            0x03 => RomSize::KB256,
+            0x04 => RomSize::KB512,
+            0x05 => RomSize::KB1024,
+            0x06 => RomSize::KB2048,
+            0x07 => RomSize::KB4096,
+            0x08 => RomSize::KB8192,
             _ => panic!("Rom size not supported")
         }
     }
@@ -120,12 +120,12 @@ pub enum RamSize{
 impl RamSize{
     pub fn new(code: u8) -> RamSize{
         match code{
-            00 => RamSize::None,
-            01 => RamSize::KB2,
-            02 => RamSize::KB8,
-            03 => RamSize::KB32,
-            04 => RamSize::KB128,
-            05 => RamSize::KB64,
+            0x00 => RamSize::None,
+            0x01 => RamSize::KB2,
+            0x02 => RamSize::KB8,
+            0x03 => RamSize::KB32,
+            0x04 => RamSize::KB128,
+            0x05 => RamSize::KB64,
             _ => panic!("Ram size not supported")
         }
     }
@@ -134,15 +134,15 @@ impl RamSize{
 struct MemoryBankController{}
 
 impl MemoryBankController {
-    pub fn new(rom: ROM) -> Box<dyn MapsMemory + Send>{
+    pub fn create_rom_memory(rom: &ROM) -> Box<dyn MapsMemory + Send>{
         let rom_size = rom.header.rom_size;
         let ram_size = rom.header.ram_size;
-        let ref rom_ref = rom;
+        let rom_ref = &rom;
         match rom_ref.header.cartridge_type{
-            CartridgeType::MBCNone{ram, battery: _} => {
+            CartridgeType::MBCNone{ram, ..} => {
                 MBCNone::new(&rom, ram)
             },
-            CartridgeType::MBC1{ram, battery: _} => {
+            CartridgeType::MBC1{ram, ..} => {
                 MBC1::new(&rom, ram, rom_size, ram_size)
             },
             _ => unimplemented!()
@@ -180,8 +180,7 @@ impl MapsMemory for MBCNone {
 
     fn is_in_range(&self, address: u16) -> bool{
         self.memory.iter()
-            .find(|mem| mem.is_in_range(address))
-            .is_some()
+            .any(|mem| mem.is_in_range(address))
     }
 }
 
@@ -240,7 +239,7 @@ impl MapsMemory for MBC1 {
             0x4000 ..= 0x7FFF => {
                 let mut bank = self.rom_bank_number | 1;
                 if self.mode_select == 0{
-                    bank = (self.ram_enable << 5) | bank;
+                    bank |= self.ram_enable << 5;
                 }
                 self.rom[bank as usize].read(address)
             },
@@ -283,11 +282,9 @@ impl MapsMemory for MBC1 {
 
     fn is_in_range(&self, address: u16) -> bool{
         let rom = self.rom.iter()
-            .find(|mem| mem.is_in_range(address))
-            .is_some();
+            .any(|mem| mem.is_in_range(address));
         let ram = self.ram.iter()
-            .find(|mem| mem.is_in_range(address))
-            .is_some();
+            .any(|mem| mem.is_in_range(address));
         ram || rom
     }
 }
@@ -303,8 +300,7 @@ impl Cartridge {
             data.push(val);
         }
         let header = CartridgeHeader::new(&data);
-        let rom = ROM{data, header};
-        let mbc = MemoryBankController::new(rom);
+        let mbc = MemoryBankController::create_rom_memory(&ROM{data, header});
         Cartridge { mbc }
     }
 }

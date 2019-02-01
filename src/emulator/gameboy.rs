@@ -1,14 +1,9 @@
-use std::sync::Arc;
 use crate::processor::interrupt_controller::InterruptController;
 use crate::processor::cpu::CPU;
-use crate::memory::cartridge::Cartridge;
-use std::time::Instant;
-use std::sync::Mutex;
+use crate::mem::cartridge::Cartridge;
 use crate::gpu::lcd::LCDFetcher;
 use std::rc::Rc;
 use std::cell::RefCell;
-
-const NANO_CYCLE_TIME: i64 = 238;
 
 pub struct Gameboy {
     cpu: CPU,

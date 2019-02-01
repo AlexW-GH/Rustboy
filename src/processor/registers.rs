@@ -350,64 +350,46 @@ impl Registers {
         self.set_f(flags);
     }
 
-    pub fn set_flags_add(&mut self, operand1: u8, operand2: u8, carry: u8,
-                         z: FlagCalculationStatus, n: FlagCalculationStatus,
-                         h: FlagCalculationStatus, cy: FlagCalculationStatus){
+    pub fn set_flags_add(&mut self, operand1: u8, operand2: u8, carry: u8, calc: FlagCalculations){
         let mut flags = self.f();
-        flags = Registers::calculate_flag_z(FlagCalculationOperation::Add, operand1, operand2, carry,  z, flags);
-        flags = Registers::calculate_flag_n(n, flags);
-        flags = Registers::calculate_flag_h(FlagCalculationOperation::Add, operand1, operand2, carry, h, flags);
-        flags = Registers::calculate_flag_cy(FlagCalculationOperation::Add, operand1, operand2, carry, cy, flags);
+        flags = Registers::calculate_flag_z(FlagCalculationOperation::Add, operand1, operand2, carry, calc.zero, flags);
+        flags = Registers::calculate_flag_n(calc.substraction, flags);
+        flags = Registers::calculate_flag_h(FlagCalculationOperation::Add, operand1, operand2, carry, calc.halfcarry, flags);
+        flags = Registers::calculate_flag_cy(FlagCalculationOperation::Add, operand1, operand2, carry, calc.carry, flags);
         self.set_f(flags);
     }
 
-    pub fn set_flags_add_i8(&mut self, operand1: u8, operand2: i8, carry: u8,
-                         z: FlagCalculationStatus, n: FlagCalculationStatus,
-                         h: FlagCalculationStatus, cy: FlagCalculationStatus){
-        if operand2 >= 0 {
-            self.set_flags_add(operand1, operand2 as u8, carry, z, n, h, cy)
-        } else {
-            self.set_flags_sub(operand1, (operand2 as i16).abs() as u8, carry, z, n, h, cy)
-        }
-    }
-
-    pub fn set_flags_sub(&mut self, operand1: u8, operand2: u8, carry: u8,
-                              z: FlagCalculationStatus, n: FlagCalculationStatus,
-                              h: FlagCalculationStatus, cy: FlagCalculationStatus){
+    pub fn set_flags_sub(&mut self, operand1: u8, operand2: u8, carry: u8, calc: FlagCalculations){
         let mut flags = self.f();
-        flags = Registers::calculate_flag_z(FlagCalculationOperation::Sub, operand1, operand2, carry, z, flags);
-        flags = Registers::calculate_flag_n(n, flags);
-        flags = Registers::calculate_flag_h(FlagCalculationOperation::Sub, operand1, operand2, carry, h, flags);
-        flags = Registers::calculate_flag_cy(FlagCalculationOperation::Sub, operand1, operand2, carry, cy, flags);
+        flags = Registers::calculate_flag_z(FlagCalculationOperation::Sub, operand1, operand2, carry, calc.zero, flags);
+        flags = Registers::calculate_flag_n(calc.substraction, flags);
+        flags = Registers::calculate_flag_h(FlagCalculationOperation::Sub, operand1, operand2, carry, calc.halfcarry, flags);
+        flags = Registers::calculate_flag_cy(FlagCalculationOperation::Sub, operand1, operand2, carry, calc.carry, flags);
         self.set_f(flags);
     }
 
-    pub fn set_flags_add_u16(&mut self, operand1: u16, operand2: u16, carry: u8,
-                         z: FlagCalculationStatus, n: FlagCalculationStatus,
-                         h: FlagCalculationStatus, cy: FlagCalculationStatus){
+    pub fn set_flags_add_u16(&mut self, operand1: u16, operand2: u16, carry: u8, calc: FlagCalculations){
         let mut flags = self.f();
-        flags = Registers::calculate_flag_z_u16(FlagCalculationOperation::Add, operand1, operand2, carry, z, flags);
-        flags = Registers::calculate_flag_n(n, flags);
-        flags = Registers::calculate_flag_h_u16(FlagCalculationOperation::Add, operand1, operand2, carry, h, flags);
-        flags = Registers::calculate_flag_cy_u16(FlagCalculationOperation::Add, operand1, operand2, carry, cy, flags);
+        flags = Registers::calculate_flag_z_u16(FlagCalculationOperation::Add, operand1, operand2, carry, calc.zero, flags);
+        flags = Registers::calculate_flag_n(calc.substraction, flags);
+        flags = Registers::calculate_flag_h_u16(FlagCalculationOperation::Add, operand1, operand2, carry, calc.halfcarry, flags);
+        flags = Registers::calculate_flag_cy_u16(FlagCalculationOperation::Add, operand1, operand2, carry, calc.carry, flags);
         self.set_f(flags);
     }
 
-    pub fn set_flags_sub_u16(&mut self, operand1: u16, operand2: u16, carry: u8,
-                             z: FlagCalculationStatus, n: FlagCalculationStatus,
-                             h: FlagCalculationStatus, cy: FlagCalculationStatus){
+    pub fn set_flags_sub_u16(&mut self, operand1: u16, operand2: u16, carry: u8, calc: FlagCalculations){
         let mut flags = self.f();
-        flags = Registers::calculate_flag_z_u16(FlagCalculationOperation::Sub, operand1, operand2, carry, z, flags);
-        flags = Registers::calculate_flag_n(n, flags);
-        flags = Registers::calculate_flag_h_u16(FlagCalculationOperation::Sub, operand1, operand2, carry, h, flags);
-        flags = Registers::calculate_flag_cy_u16(FlagCalculationOperation::Sub, operand1, operand2, carry, cy, flags);
+        flags = Registers::calculate_flag_z_u16(FlagCalculationOperation::Sub, operand1, operand2, carry, calc.zero, flags);
+        flags = Registers::calculate_flag_n(calc.substraction, flags);
+        flags = Registers::calculate_flag_h_u16(FlagCalculationOperation::Sub, operand1, operand2, carry, calc.halfcarry, flags);
+        flags = Registers::calculate_flag_cy_u16(FlagCalculationOperation::Sub, operand1, operand2, carry, calc.carry, flags);
         self.set_f(flags);
     }
 
     fn calculate_flag_z(operation: FlagCalculationOperation, operand1: u8, operand2: u8, carry: u8, z: FlagCalculationStatus, flags: u8) -> u8 {
-        let operand1 = operand1 as i16;
-        let operand2 = operand2 as i16;
-        let carry = carry as i16;
+        let operand1 = i16::from(operand1);
+        let operand2 = i16::from(operand2);
+        let carry = i16::from(carry);
         match z {
             FlagCalculationStatus::Set => bit_op::set_bit(flags, 7),
             FlagCalculationStatus::Clear => bit_op::clear_bit(flags, 7),
@@ -417,7 +399,7 @@ impl Registers {
                     FlagCalculationOperation::Add => (operand1 + operand2 + carry) & 0xFF,
                     FlagCalculationOperation::Sub => (operand1 - operand2) - carry,
                 };
-                if (result & 0xFF) == 0 {
+                if result.trailing_zeros() >= 8 {
                     bit_op::set_bit(flags, 7)
                 } else {
                     bit_op::clear_bit(flags, 7)
@@ -431,7 +413,7 @@ impl Registers {
             FlagCalculationStatus::Set => bit_op::set_bit(flags, 6),
             FlagCalculationStatus::Clear => bit_op::clear_bit(flags, 6),
             FlagCalculationStatus::Ignore => flags,
-            FlagCalculationStatus::Calculate => bit_op::set_bit(flags, 6),
+            FlagCalculationStatus::Calculate => panic!(),
         }
     }
 
@@ -452,8 +434,8 @@ impl Registers {
                     },
                     FlagCalculationOperation::Sub => {
                         let result = operand1.wrapping_sub(operand2).wrapping_sub(carry);
-                        let result = ((operand1 ^ operand2 ^ (result & 0xff)) & ( 1 << 4)) != 0;
-                        if result == true {
+                        let result = ((operand1 ^ operand2 ^ result ) & ( 1 << 4)) != 0;
+                        if result {
                             bit_op::set_bit(flags, 5)
                         } else {
                             bit_op::clear_bit(flags, 5)
@@ -466,9 +448,9 @@ impl Registers {
     }
 
     fn calculate_flag_cy(operation: FlagCalculationOperation, operand1: u8, operand2: u8, carry: u8, h: FlagCalculationStatus, flags: u8) -> u8 {
-        let operand1 = operand1 as u16;
-        let operand2 = operand2 as u16;
-        let carry = carry as u16;
+        let operand1 = u16::from(operand1);
+        let operand2 = u16::from(operand2);
+        let carry = u16::from(carry);
         match h {
             FlagCalculationStatus::Set => bit_op::set_bit(flags, 4),
             FlagCalculationStatus::Clear => bit_op::clear_bit(flags, 4),
@@ -484,7 +466,7 @@ impl Registers {
                         }
                     },
                     FlagCalculationOperation::Sub => {
-                        let result = (operand1 as i32 - operand2 as i32) - carry as i32;
+                        let result = (i32::from(operand1) - i32::from(operand2)) - i32::from(carry);
                         if result < 0 {
                             bit_op::set_bit(flags, 4)
                         } else {
@@ -498,9 +480,9 @@ impl Registers {
     }
 
     fn calculate_flag_z_u16(operation: FlagCalculationOperation, operand1: u16, operand2: u16, carry: u8, z: FlagCalculationStatus, flags: u8) -> u8 {
-        let operand1 = operand1 as i32;
-        let operand2 = operand2 as i32;
-        let carry = carry as i32;
+        let operand1 = i32::from(operand1);
+        let operand2 = i32::from(operand2);
+        let carry = i32::from(carry);
         match z {
             FlagCalculationStatus::Set => bit_op::set_bit(flags, 7),
             FlagCalculationStatus::Clear => bit_op::clear_bit(flags, 7),
@@ -529,7 +511,7 @@ impl Registers {
                     FlagCalculationOperation::Add => {
                         let mut result = operand1 & 0xFFF;
                         result += operand2 & 0xFFF;
-                        result += carry as u16 & 0xFFF;
+                        result += u16::from(carry) & 0xFFF;
                         if result >= 0x1000 {
                             bit_op::set_bit(flags, 5)
                         } else {
@@ -537,9 +519,9 @@ impl Registers {
                         }
                     },
                     FlagCalculationOperation::Sub => {
-                        let mut result: i32 = operand1 as i32 & 0xFFF;
-                        result -= operand2 as i32 & 0xFFF;
-                        result -= carry as i32 & 0xFFF;
+                        let mut result: i32 = i32::from(operand1) & 0xFFF;
+                        result -= i32::from(operand2) & 0xFFF;
+                        result -= i32::from(carry) & 0xFFF;
                         if result < 0 {
                             bit_op::set_bit(flags, 5)
                         } else {
@@ -553,9 +535,9 @@ impl Registers {
     }
 
     fn calculate_flag_cy_u16(operation: FlagCalculationOperation, operand1: u16, operand2: u16, carry: u8, h: FlagCalculationStatus, flags: u8) -> u8 {
-        let operand1 = operand1 as u32;
-        let operand2 = operand2 as u32;
-        let carry = carry as u32;
+        let operand1 = u32::from(operand1);
+        let operand2 = u32::from(operand2);
+        let carry = u32::from(carry);
         match h {
             FlagCalculationStatus::Set => bit_op::set_bit(flags, 4),
             FlagCalculationStatus::Clear => bit_op::clear_bit(flags, 4),
@@ -571,7 +553,7 @@ impl Registers {
                         }
                     },
                     FlagCalculationOperation::Sub => {
-                        let result = (operand1 as i64 - operand2 as i64) - carry as i64;
+                        let result = (i64::from(operand1) - i64::from(operand2)) - i64::from(carry);
                         if result < 0 {
                             bit_op::set_bit(flags, 4)
                         } else {
@@ -584,6 +566,60 @@ impl Registers {
         }
     }
 
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct FlagCalculations {
+    pub zero: FlagCalculationStatus,
+    pub carry: FlagCalculationStatus,
+    pub halfcarry: FlagCalculationStatus,
+    pub substraction: FlagCalculationStatus,
+}
+
+impl FlagCalculations {
+    pub fn new() -> FlagCalculations {
+        FlagCalculations{
+            zero: FlagCalculationStatus::Ignore,
+            carry: FlagCalculationStatus::Ignore,
+            halfcarry: FlagCalculationStatus::Ignore,
+            substraction: FlagCalculationStatus::Ignore,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct FlagCalculationsBuilder {
+    flag_calculations: FlagCalculations
+}
+
+impl FlagCalculationsBuilder {
+    pub fn new() -> FlagCalculationsBuilder{
+        FlagCalculationsBuilder{flag_calculations: FlagCalculations::new()}
+    }
+
+    pub fn build(self) -> FlagCalculations{
+        self.flag_calculations
+    }
+
+    pub fn zero(mut self, status: FlagCalculationStatus) -> FlagCalculationsBuilder {
+        self.flag_calculations.zero = status;
+        self
+    }
+
+    pub fn carry(mut self, status: FlagCalculationStatus) -> FlagCalculationsBuilder {
+        self.flag_calculations.carry = status;
+        self
+    }
+
+    pub fn halfcarry(mut self, status: FlagCalculationStatus) -> FlagCalculationsBuilder {
+        self.flag_calculations.halfcarry = status;
+        self
+    }
+
+    pub fn substraction(mut self, status: FlagCalculationStatus) -> FlagCalculationsBuilder {
+        self.flag_calculations.substraction = status;
+        self
+    }
 }
 
 #[derive(Debug, Copy, Clone)]

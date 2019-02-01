@@ -32,7 +32,7 @@ pub mod bit_op{
 }
 
 pub mod memory_op{
-    use crate::memory::memory::MapsMemory;
+    use crate::mem::memory::MapsMemory;
 
     pub fn write_memory(memory: &mut dyn MapsMemory, address: u16, value: u8) {
         memory.write(address, value).unwrap()
@@ -47,7 +47,7 @@ pub mod memory_op{
     }
 
     pub fn read_memory_following_u16(memory: &dyn MapsMemory, address: u16) -> u16 {
-        ((memory.read(address + 2).unwrap() as u16) << 8 ) + memory.read(address +1).unwrap() as u16
+        (u16::from(memory.read(address + 2).unwrap()) << 8 ) + u16::from(memory.read(address +1).unwrap())
     }
 
     pub fn push_u16_stack(memory: &mut dyn MapsMemory, value: u16, sp: u16){
@@ -58,6 +58,6 @@ pub mod memory_op{
     pub fn pop_u16_stack(memory: &mut dyn MapsMemory, sp: u16) -> u16{
         let val_lo = memory.read(sp).unwrap();
         let val_hi = memory.read(sp + 1).unwrap();
-        ((val_hi as u16) << 8) + val_lo as u16
+        (u16::from(val_hi) << 8) + u16::from(val_lo)
     }
 }

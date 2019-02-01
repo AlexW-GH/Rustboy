@@ -42,7 +42,7 @@ impl MapsMemory for Memory{
                 memory.write(address, value);
                 Ok(())
             },
-            Memory::ReadOnly{memory: _} => Err(())
+            Memory::ReadOnly{..} => Err(())
         }
     }
 
@@ -95,8 +95,7 @@ impl MemoryInternal{
     }
 
     fn read(&self, address: u16) -> u8{
-        let mem = self.memory[address as usize];
-        mem
+        self.memory[address as usize]
     }
 
     fn write(&mut self, address: u16, value: u8){
