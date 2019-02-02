@@ -19,6 +19,9 @@ use std::{
     cell::RefCell,
     rc::Rc,
 };
+use crate::debug::vram_fetcher::VRAMFetcher;
+use piston_window::WindowSettings;
+use crate::debug::vram_fetcher::VramDebugger;
 
 const BG_TILES_HOR: u32 = 20;
 const BG_TILES_VER: u32 = 18;
@@ -46,11 +49,13 @@ impl Renderer {
     }
 
     pub fn run(&mut self) {
+        let fetcher = VRAMFetcher{};
         while let Some(e) = self.window.next() {
             if let Event::Loop(loop_event) = e {
                 if let Loop::Render(render) = loop_event {
                     self.gameboy.render_step();
                     let img = self.lcd.borrow().image().clone();
+                    //let img = self.gameboy.render_background_tilemap(fetcher);
                     let img = imageops::resize(
                         &img,
                         render.draw_width,
@@ -64,7 +69,7 @@ impl Renderer {
                     )
                     .unwrap();
                     self.window.draw_2d(&e, |c, g| {
-                        piston_window::clear([1.0, 0.0, 0.0, 1.0], g);
+                        //piston_window::clear([1.0, 0.0, 0.0, 1.0], g);
                         piston_window::image(&img, c.transform, g);
                     });
                 }

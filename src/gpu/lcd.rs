@@ -32,7 +32,6 @@ impl LCD {
         if self.calc_pos == PIXELS {
             self.calc_pos = 0;
         }
-        // println!("Color: {} @ {},{}", color, x, y);
         assert_eq!(self.calc_pos, HOR_PIXELS * y + x);
         let pixel = match color {
             0b00 => Rgba([255u8, 255u8, 255u8, 255u8]),

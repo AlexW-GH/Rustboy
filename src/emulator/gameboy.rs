@@ -10,6 +10,12 @@ use std::{
     cell::RefCell,
     rc::Rc,
 };
+use crate::debug::vram_fetcher::VramDebugger;
+use crate::debug::vram_fetcher::VRAMFetcher;
+use image::{
+    ImageBuffer,
+    Rgba,
+};
 
 pub struct Gameboy {
     cpu: CPU,
@@ -35,5 +41,15 @@ impl Gameboy {
     pub fn render_step(&mut self) {
         use crate::gpu::ppu::TICKS_PER_CYCLE;
         self.step(TICKS_PER_CYCLE)
+    }
+}
+
+impl VramDebugger for Gameboy{
+    fn render_all_background_tiles(&self, fetcher: VRAMFetcher) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+        fetcher.render_all_background_tiles(&self.cpu)
+    }
+
+    fn render_background_tilemap(&self, fetcher: VRAMFetcher) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+        fetcher.render_background_tilemap(&self.cpu)
     }
 }
