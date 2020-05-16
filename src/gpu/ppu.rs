@@ -272,7 +272,7 @@ impl Fetcher {
         match self.current_step {
             FetcherStep::ReadTile => self.read_tile(vram, io_registers),
             FetcherStep::ReadData0 => self.read_data0(vram, io_registers),
-            FetcherStep::ReadData1 => self.read_tile1(pixel_fifo, vram, io_registers),
+            FetcherStep::ReadData1 => self.read_data1(pixel_fifo, vram, io_registers),
             FetcherStep::WriteData => self.write_data(pixel_fifo),
         }
     }
@@ -293,7 +293,7 @@ impl Fetcher {
 
     fn read_data0(&mut self, vram: &Memory, io_registers: &mut Memory) {
         let lcd_control_register = io_registers.read(LCDC_REGISTER).unwrap();
-        let bg_tiles_address = if (lcd_control_register >> 4) & 1 != 0 { 0x9000 } else { 0x8000 };
+        let bg_tiles_address = if (lcd_control_register >> 4) & 1 == 0 { 0x9000 } else { 0x8000 };
         if bg_tiles_address == 0x8000 {
             self.data0 = vram
                 .read(
@@ -323,10 +323,10 @@ impl Fetcher {
         self.current_step = self.current_step.next();
     }
 
-    fn read_tile1(&mut self, pixel_fifo: &mut PixelFifo, vram: &Memory, io_registers: &mut Memory) {
+    fn read_data1(&mut self, pixel_fifo: &mut PixelFifo, vram: &Memory, io_registers: &mut Memory) {
         let lcd_control_register = io_registers.read(LCDC_REGISTER).unwrap();
         let bg_tiles_address =
-            if (lcd_control_register >> 4) & 1 != 0 { 0x9000 } else { 0x8000 } + 1;
+            if (lcd_control_register >> 4) & 1 == 0 { 0x9000 } else { 0x8000 } + 1;
         if bg_tiles_address == 0x8001 {
             self.data1 = vram
                 .read(

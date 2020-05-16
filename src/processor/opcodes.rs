@@ -2096,10 +2096,11 @@ fn nop(opcode: u8, pc: u16, cpu: &mut CPU) -> u8 {
 
 /// HALT
 /// 01 110 110
-fn halt(opcode: u8, pc: u16, _: &mut CPU) -> u8 {
+fn halt(opcode: u8, pc: u16, cpu: &mut CPU) -> u8 {
     debug!("{:#06X}: {:#04X} | HALT", pc, opcode);
-    unimplemented!();
-    // 4
+    //unimplemented!();
+    cpu.registers.inc_pc(1);
+    4
 }
 
 /// STOP

@@ -246,7 +246,7 @@ impl MBC1 {
             rom:             memory_rom,
             ram:             memory_ram,
             ram_enable:      0,
-            rom_bank_number: 0,
+            rom_bank_number: 1,
             ram_bank_number: 0,
             mode_select:     0,
         })
@@ -258,9 +258,9 @@ impl MapsMemory for MBC1 {
         match address {
             0x0000..=0x3FFF => self.rom[0].read(address),
             0x4000..=0x7FFF => {
-                let mut bank = self.rom_bank_number | 1;
+                let mut bank = self.rom_bank_number;
                 if self.mode_select == 0 {
-                    bank |= self.ram_enable << 5;
+                    bank |= self.ram_bank_number << 5;
                 }
                 self.rom[bank as usize].read(address)
             },
@@ -283,6 +283,7 @@ impl MapsMemory for MBC1 {
             },
             0x2000..=0x3FFF => {
                 self.rom_bank_number = value & 0b11111;
+                if self.rom_bank_number == 0 {self.rom_bank_number = 1};
                 return Ok(());
             },
             0x4000..=0x5FFF => {
@@ -293,10 +294,13 @@ impl MapsMemory for MBC1 {
                 self.mode_select = value & 0b1;
                 return Ok(());
             },
-            _ => (),
+            _ => {
+                let bank = self.ram_bank_number;
+                self.ram[bank as usize].write(address, value)
+            }
+
         }
-        let bank = self.ram_bank_number;
-        self.ram[bank as usize].write(address, value)
+
     }
 
     fn is_in_range(&self, address: u16) -> bool {

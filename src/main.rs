@@ -35,6 +35,7 @@ use std::{
     cell::RefCell,
     rc::Rc,
 };
+use simplelog::WriteLogger;
 
 
 fn main() {
@@ -94,7 +95,7 @@ fn retrieve_options() -> (String, bool, f64) {
 
 fn setup_logging(file_name: &str) {
     let file_name = file_name.split('/').collect::<Vec<_>>().last().unwrap().to_string();
-    let _log_path = format!("logs/{}.log", file_name);
+    let log_path = format!("logs/{}.log", file_name);
     //WriteLogger::init(LevelFilter::Debug, Config::default(), File::create(log_path).unwrap()).unwrap();
     //TestLogger::init(LevelFilter::Debug, Config::default());
 }

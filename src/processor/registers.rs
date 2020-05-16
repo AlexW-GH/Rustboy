@@ -263,35 +263,35 @@ impl Registers {
     }
 
     pub fn set_a(&mut self, value: u8) {
-        unsafe { self.af.single.a = value };
+        self.af.single.a = value;
     }
 
     pub fn set_b(&mut self, value: u8) {
-        unsafe { self.bc.single.b = value };
+        self.bc.single.b = value;
     }
 
     pub fn set_c(&mut self, value: u8) {
-        unsafe { self.bc.single.c = value };
+        self.bc.single.c = value;
     }
 
     pub fn set_d(&mut self, value: u8) {
-        unsafe { self.de.single.d = value };
+        self.de.single.d = value;
     }
 
     pub fn set_e(&mut self, value: u8) {
-        unsafe { self.de.single.e = value };
+        self.de.single.e = value;
     }
 
     pub fn set_f(&mut self, value: u8) {
-        unsafe { self.af.single.f = value & 0xF0 };
+        self.af.single.f = value & 0xF0;
     }
 
     pub fn set_h(&mut self, value: u8) {
-        unsafe { self.hl.single.h = value };
+        self.hl.single.h = value;
     }
 
     pub fn set_l(&mut self, value: u8) {
-        unsafe { self.hl.single.l = value };
+        self.hl.single.l = value;
     }
 
     pub fn set_af(&mut self, value: u16) {

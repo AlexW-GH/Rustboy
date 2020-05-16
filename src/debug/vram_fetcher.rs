@@ -32,12 +32,11 @@ impl VRAMFetcher{
         let lcd_control_register = memory.read(LCDC_REGISTER).unwrap();
         let bg_tiles_address: u16 =
             if (lcd_control_register >> 4) & 1 != 0 { 0x8800 } else { 0x8000 };
-        let mut counter = 0;
         for sprite_y in 0u16 .. 16{
             for sprite_x in 0u16 .. 16 {
                 println!("Sprite: {}", (sprite_x + (sprite_y*16)));
                 for pixel_y in 0u16 .. 8{
-                    let address = bg_tiles_address + u16::from((pixel_y) * 0x2) + ((sprite_x + (sprite_y*16)) * 0x10);
+                    let address = bg_tiles_address + pixel_y * 0x2 + ((sprite_x + (sprite_y*16)) * 0x10);
                     let data0 = memory.read(address).unwrap();
                     let data1 = memory.read(address+1).unwrap();
 
