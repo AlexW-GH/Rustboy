@@ -1,11 +1,5 @@
-use image::{
-    ImageBuffer,
-    Rgba,
-};
-use std::{
-    cell::RefCell,
-    rc::Rc,
-};
+use image::{ImageBuffer, Rgba};
+use std::{cell::RefCell, rc::Rc};
 
 const BG_TILES_HOR: u32 = 20;
 const BG_TILES_VER: u32 = 18;
@@ -17,14 +11,18 @@ pub const PIXELS: u32 = HOR_PIXELS * VER_PIXELS;
 
 pub(crate) struct Screen {
     lcd_fetcher: Rc<RefCell<ScreenFetcher>>,
-    image:       ImageBuffer<Rgba<u8>, Vec<u8>>,
-    calc_pos:    u32,
+    image: ImageBuffer<Rgba<u8>, Vec<u8>>,
+    calc_pos: u32,
 }
 
 impl Screen {
     pub fn new(lcd_fetcher: Rc<RefCell<ScreenFetcher>>) -> Screen {
         let image = ImageBuffer::from_fn(HOR_PIXELS, VER_PIXELS, |_, _| Rgba([255u8; 4]));
-        Screen { image, lcd_fetcher, calc_pos: 0 }
+        Screen {
+            image,
+            lcd_fetcher,
+            calc_pos: 0,
+        }
     }
 
     pub fn set_pixel(&mut self, x: u32, y: u32, color: u8) {

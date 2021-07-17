@@ -13,7 +13,6 @@ pub trait MapsMemory {
     fn is_in_range(&self, address: u16) -> bool;
 }
 
-
 #[derive(Debug)]
 pub enum Memory {
     ReadOnly { memory: ReadOnly },
@@ -22,12 +21,16 @@ pub enum Memory {
 
 impl Memory {
     pub fn new_read_only(values: &[u8], from: u16, to: u16) -> Memory {
-        let memory = ReadOnly { memory: MemoryInternal::new(values, from, to) };
+        let memory = ReadOnly {
+            memory: MemoryInternal::new(values, from, to),
+        };
         Memory::ReadOnly { memory }
     }
 
     pub fn new_read_write(values: &[u8], from: u16, to: u16) -> Memory {
-        let memory = ReadWrite { memory: MemoryInternal::new(values, from, to) };
+        let memory = ReadWrite {
+            memory: MemoryInternal::new(values, from, to),
+        };
         Memory::ReadWrite { memory }
     }
 }
@@ -45,7 +48,7 @@ impl MapsMemory for Memory {
             Memory::ReadWrite { memory } => {
                 memory.write(address, value);
                 Ok(())
-            },
+            }
             Memory::ReadOnly { .. } => Err(()),
         }
     }
@@ -83,8 +86,8 @@ impl ReadWrite {
 
 #[derive(Debug)]
 struct MemoryInternal {
-    from:   u16,
-    to:     u16,
+    from: u16,
+    to: u16,
     memory: Vec<u8>,
 }
 

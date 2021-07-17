@@ -1,30 +1,21 @@
+use crate::debug::vram_fetcher::VRAMFetcher;
+use crate::debug::vram_fetcher::VramDebugger;
 use crate::{
     gpu::screen::ScreenFetcher,
     mem::cartridge::Cartridge,
-    processor::{
-        cpu::CPU,
-        interrupt_controller::InterruptController,
-    },
+    processor::{cpu::Cpu, interrupt_controller::InterruptController},
 };
-use std::{
-    cell::RefCell,
-    rc::Rc,
-};
-use crate::debug::vram_fetcher::VramDebugger;
-use crate::debug::vram_fetcher::VRAMFetcher;
-use image::{
-    ImageBuffer,
-    Rgba,
-};
+use image::{ImageBuffer, Rgba};
+use std::{cell::RefCell, rc::Rc};
 
-pub trait Emulator{
+pub trait Emulator {
     fn step(&mut self, steps: usize);
     fn render_step(&mut self);
     fn load_cartridge(&mut self, cartridge: Cartridge);
 }
 
 pub struct Gameboy {
-    cpu: Option<CPU>,
+    cpu: Option<Cpu>,
     lcd_fetcher: Rc<RefCell<ScreenFetcher>>,
     boot_rom: Option<Vec<u8>>,
 }
@@ -32,13 +23,17 @@ pub struct Gameboy {
 impl Gameboy {
     pub fn new(boot_rom: Option<Vec<u8>>) -> Self {
         let lcd_fetcher = Rc::new(RefCell::new(ScreenFetcher::new()));
-        Gameboy { cpu: None, lcd_fetcher, boot_rom }
+        Gameboy {
+            cpu: None,
+            lcd_fetcher,
+            boot_rom,
+        }
     }
 
     pub fn game_title(&self) -> &str {
         if let Some(cpu) = &self.cpu {
             cpu.game_title()
-        }  else {
+        } else {
             ""
         }
     }
@@ -55,7 +50,6 @@ impl Emulator for Gameboy {
                 cpu.step();
             }
         }
-
     }
 
     fn render_step(&mut self) {
@@ -63,25 +57,29 @@ impl Emulator for Gameboy {
         self.step(TICKS_PER_CYCLE)
     }
 
-    fn load_cartridge(&mut self, cartridge: Cartridge){
+    fn load_cartridge(&mut self, cartridge: Cartridge) {
         let interrupt = InterruptController::new();
-        self.cpu = Some(CPU::new(interrupt, cartridge, self.lcd_fetcher.clone(), self.boot_rom.clone()));
+        self.cpu = Some(Cpu::new(
+            interrupt,
+            cartridge,
+            self.lcd_fetcher.clone(),
+            self.boot_rom.clone(),
+        ));
     }
-
 }
 
-impl VramDebugger for Gameboy{
+impl VramDebugger for Gameboy {
     fn render_all_background_tiles(&self, fetcher: VRAMFetcher) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
         if let Some(cpu) = &self.cpu {
             return fetcher.render_all_background_tiles(cpu);
         }
-        ImageBuffer::new(0,0)
+        ImageBuffer::new(0, 0)
     }
 
     fn render_background_tilemap(&self, fetcher: VRAMFetcher) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
         if let Some(cpu) = &self.cpu {
             return fetcher.render_background_tilemap(cpu);
         }
-        ImageBuffer::new(0,0)
+        ImageBuffer::new(0, 0)
     }
 }

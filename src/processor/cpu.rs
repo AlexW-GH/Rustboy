@@ -1,56 +1,41 @@
 use crate::{
-    gpu::{
-        screen::ScreenFetcher,
-        ppu::PixelProcessingUnit,
-    },
+    gpu::{ppu::PixelProcessingUnit, screen::ScreenFetcher},
     mem::{
         cartridge::Cartridge,
-        memory::{
-            MapsMemory,
-            Memory,
-        },
+        memory::{MapsMemory, Memory},
     },
-    processor::{
-        interrupt_controller::InterruptController,
-        opcodes,
-        registers::Registers,
-    },
+    processor::{interrupt_controller::InterruptController, opcodes, registers::Registers},
 };
-use std::{
-    cell::RefCell,
-    rc::Rc,
-};
+use std::{cell::RefCell, rc::Rc};
 
-pub(crate) struct CPU {
+pub(crate) struct Cpu {
     pub registers: Registers,
     pub interrupt: InterruptController,
 
-    memory:       Vec<Memory>,
+    memory: Vec<Memory>,
     io_registers: Memory,
-    boot_rom:     Option<Memory>,
-    ppu:          PixelProcessingUnit,
-    cartridge:    Cartridge,
+    boot_rom: Option<Memory>,
+    ppu: PixelProcessingUnit,
+    cartridge: Cartridge,
 
     cpu_wait_cycles: i64,
 }
 
-impl CPU {
+impl Cpu {
     pub fn new(
         interrupt: InterruptController,
         cartridge: Cartridge,
         lcd_fetcher: Rc<RefCell<ScreenFetcher>>,
         boot_rom: Option<Vec<u8>>,
-    ) -> CPU {
-        let boot_rom = match boot_rom {
-            Some(opcodes) => Some(Memory::new_read_only(&opcodes, 0x0000, opcodes.len() as u16)),
-            None => None,
-        };
+    ) -> Cpu {
+        let boot_rom =
+            boot_rom.map(|opcodes| Memory::new_read_only(&opcodes, 0x0000, opcodes.len() as u16));
         let boot_sequence = boot_rom.is_some();
         let memory = Self::init_memory();
         let io_registers = Memory::new_read_write(&[0u8; 0], 0xFF00, 0xFF7F);
         let ppu = PixelProcessingUnit::new(lcd_fetcher);
         let cpu_wait_cycles = 0;
-        let mut cpu = CPU {
+        let mut cpu = Cpu {
             registers: Registers::new(boot_sequence),
             interrupt,
             memory,
@@ -80,12 +65,12 @@ impl CPU {
     }
 
     pub fn init_memory() -> Vec<Memory> {
-        let mut memory = Vec::new();
-        memory.push(Memory::new_read_write(&[0u8; 0], 0xC000, 0xDFFF));
-        memory.push(Memory::new_read_write(&[0u8; 0], 0xE000, 0xFDFF));
-        memory.push(Memory::new_read_write(&[0u8; 0], 0xFF80, 0xFFFE));
-        memory.push(Memory::new_read_write(&[0u8; 0], 0xFFFF, 0xFFFF));
-        memory
+        vec![
+            Memory::new_read_write(&[0u8; 0], 0xC000, 0xDFFF),
+            Memory::new_read_write(&[0u8; 0], 0xE000, 0xFDFF),
+            Memory::new_read_write(&[0u8; 0], 0xFF80, 0xFFFE),
+            Memory::new_read_write(&[0u8; 0], 0xFFFF, 0xFFFF),
+        ]
     }
 
     fn init_boot_state(&mut self, boot_sequence: bool) {
@@ -130,7 +115,7 @@ impl CPU {
     }
 }
 
-impl MapsMemory for CPU {
+impl MapsMemory for Cpu {
     fn read(&self, address: u16) -> Result<u8, ()> {
         if let Some(boot) = &self.boot_rom {
             if boot.is_in_range(address) {
@@ -150,7 +135,7 @@ impl MapsMemory for CPU {
                 self.cartridge.read(address)
             } else if self.io_registers.is_in_range(address) {
                 self.io_registers.read(address)
-            } else if address >= 0xFEA0 && address <= 0xFEFF {
+            } else if (0xFEA0..=0xFEFF).contains(&address) {
                 Ok(0xFF)
             } else {
                 Err(())
@@ -168,7 +153,7 @@ impl MapsMemory for CPU {
             .map(|mem| mem.write(address, value))
             .unwrap_or_else(|| Err(()));
         if write.is_ok() {
-            if (address >= 0xE000) && (address <= 0xFDFF) {
+            if (0xE000..=0xFDFF).contains(&address) {
                 self.write(address - 0x2000, value).unwrap();
             }
             write
@@ -181,7 +166,7 @@ impl MapsMemory for CPU {
                 self.boot_rom = None;
             }
             self.io_registers.write(address, value)
-        } else if address >= 0xFEA0 && address <= 0xFEFF {
+        } else if (0xFEA0..=0xFEFF).contains(&address) {
             Ok(())
         } else {
             Err(())
@@ -201,28 +186,18 @@ mod tests {
     use crate::{
         gpu::screen::ScreenFetcher,
         mem::cartridge::Cartridge,
-        processor::{
-            cpu::CPU,
-            interrupt_controller::InterruptController,
-        },
+        processor::{cpu::Cpu, interrupt_controller::InterruptController},
         util::memory_op::*,
     };
     use log::LevelFilter;
-    use simplelog::{
-        self,
-        Config,
-        TestLogger,
-    };
+    use simplelog::{self, Config, TestLogger};
     use std::{
         cell::RefCell,
         rc::Rc,
-        sync::{
-            Arc,
-            Mutex,
-        },
+        sync::{Arc, Mutex},
     };
 
-    fn create_cpu(rom: Vec<u8>) -> CPU {
+    fn create_cpu(rom: Vec<u8>) -> Cpu {
         let logger = TestLogger::init(LevelFilter::Debug, Config::default());
         if logger.is_ok() {
             logger.unwrap();
@@ -231,7 +206,7 @@ mod tests {
         let rom = add_header(rom);
         let cartridge = Cartridge::new(rom);
         let lcd_fetcher = Rc::new(RefCell::new(ScreenFetcher::new()));
-        let mut cpu = CPU::new(interrupt, cartridge, lcd_fetcher, None);
+        let mut cpu = Cpu::new(interrupt, cartridge, lcd_fetcher, None);
         cpu.registers.set_pc(0);
         cpu.registers.set_f(0x0);
         cpu
@@ -248,7 +223,7 @@ mod tests {
         with_header
     }
 
-    fn run_steps_without_wait_cycles(steps: usize, cpu: &mut CPU) {
+    fn run_steps_without_wait_cycles(steps: usize, cpu: &mut Cpu) {
         for _ in 0..steps {
             cpu.step();
             cpu.cpu_wait_cycles = 0;

@@ -1,2 +1,2 @@
-pub mod screen;
 pub mod ppu;
+pub mod screen;

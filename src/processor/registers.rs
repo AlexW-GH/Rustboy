@@ -24,80 +24,104 @@ impl fmt::Debug for Registers {
 #[derive(Clone, Copy)]
 union AF {
     single: AFSingle,
-    both:   u16,
+    both: u16,
 }
 
 impl fmt::Debug for AF {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         unsafe {
-            write!(f, "{:#06X} (a: {:#04X}, f: {:#04X})", self.both, self.single.a, self.single.f)
+            write!(
+                f,
+                "{:#06X} (a: {:#04X}, f: {:#04X})",
+                self.both, self.single.a, self.single.f
+            )
         }
     }
 }
 
 impl AF {
     fn new(boot_sequence: bool) -> AF {
-        AF { both: if boot_sequence { 0 } else { 0x01b0 } }
+        AF {
+            both: if boot_sequence { 0 } else { 0x01b0 },
+        }
     }
 }
 
 #[derive(Clone, Copy)]
 union BC {
     single: BCSingle,
-    both:   u16,
+    both: u16,
 }
 
 impl fmt::Debug for BC {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         unsafe {
-            write!(f, "{:#06X} (b: {:#04X}, c: {:#04X})", self.both, self.single.b, self.single.c)
+            write!(
+                f,
+                "{:#06X} (b: {:#04X}, c: {:#04X})",
+                self.both, self.single.b, self.single.c
+            )
         }
     }
 }
 
 impl BC {
     fn new(boot_sequence: bool) -> BC {
-        BC { both: if boot_sequence { 0 } else { 0x0013 } }
+        BC {
+            both: if boot_sequence { 0 } else { 0x0013 },
+        }
     }
 }
 
 #[derive(Clone, Copy)]
 union DE {
     single: DESingle,
-    both:   u16,
+    both: u16,
 }
 
 impl fmt::Debug for DE {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         unsafe {
-            write!(f, "{:#06X} (d: {:#04X}, e: {:#04X})", self.both, self.single.d, self.single.e)
+            write!(
+                f,
+                "{:#06X} (d: {:#04X}, e: {:#04X})",
+                self.both, self.single.d, self.single.e
+            )
         }
     }
 }
 
 impl DE {
     fn new(boot_sequence: bool) -> DE {
-        DE { both: if boot_sequence { 0 } else { 0x00d8 } }
+        DE {
+            both: if boot_sequence { 0 } else { 0x00d8 },
+        }
     }
 }
 
 #[derive(Clone, Copy)]
 union HL {
     single: HLSingle,
-    both:   u16,
+    both: u16,
 }
 
 impl fmt::Debug for HL {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         unsafe {
-            write!(f, "{:#06X} (h: {:#04X}, l: {:#04X})", self.both, self.single.h, self.single.l)
+            write!(
+                f,
+                "{:#06X} (h: {:#04X}, l: {:#04X})",
+                self.both, self.single.h, self.single.l
+            )
         }
     }
 }
 
 impl HL {
     fn new(boot_sequence: bool) -> HL {
-        HL { both: if boot_sequence { 0 } else { 0x014D } }
+        HL {
+            both: if boot_sequence { 0 } else { 0x014D },
+        }
     }
 }
 
@@ -514,7 +538,7 @@ impl Registers {
                 } else {
                     bit_op::clear_bit(flags, 7)
                 }
-            },
+            }
         }
     }
 
@@ -547,7 +571,7 @@ impl Registers {
                     } else {
                         bit_op::clear_bit(flags, 5)
                     }
-                },
+                }
                 FlagCalculationOperation::Sub => {
                     let result = operand1.wrapping_sub(operand2).wrapping_sub(carry);
                     let result = ((operand1 ^ operand2 ^ result) & (1 << 4)) != 0;
@@ -556,7 +580,7 @@ impl Registers {
                     } else {
                         bit_op::clear_bit(flags, 5)
                     }
-                },
+                }
             },
         }
     }
@@ -584,7 +608,7 @@ impl Registers {
                     } else {
                         bit_op::clear_bit(flags, 4)
                     }
-                },
+                }
                 FlagCalculationOperation::Sub => {
                     let result = (i32::from(operand1) - i32::from(operand2)) - i32::from(carry);
                     if result < 0 {
@@ -592,7 +616,7 @@ impl Registers {
                     } else {
                         bit_op::clear_bit(flags, 4)
                     }
-                },
+                }
             },
         }
     }
@@ -622,7 +646,7 @@ impl Registers {
                 } else {
                     bit_op::clear_bit(flags, 7)
                 }
-            },
+            }
         }
     }
 
@@ -648,7 +672,7 @@ impl Registers {
                     } else {
                         bit_op::clear_bit(flags, 5)
                     }
-                },
+                }
                 FlagCalculationOperation::Sub => {
                     let mut result: i32 = i32::from(operand1) & 0xFFF;
                     result -= i32::from(operand2) & 0xFFF;
@@ -658,7 +682,7 @@ impl Registers {
                     } else {
                         bit_op::clear_bit(flags, 5)
                     }
-                },
+                }
             },
         }
     }
@@ -686,7 +710,7 @@ impl Registers {
                     } else {
                         bit_op::clear_bit(flags, 4)
                     }
-                },
+                }
                 FlagCalculationOperation::Sub => {
                     let result = (i64::from(operand1) - i64::from(operand2)) - i64::from(carry);
                     if result < 0 {
@@ -694,7 +718,7 @@ impl Registers {
                     } else {
                         bit_op::clear_bit(flags, 4)
                     }
-                },
+                }
             },
         }
     }
@@ -702,18 +726,18 @@ impl Registers {
 
 #[derive(Debug, Copy, Clone)]
 pub struct FlagCalculations {
-    pub zero:         FlagCalculationStatus,
-    pub carry:        FlagCalculationStatus,
-    pub halfcarry:    FlagCalculationStatus,
+    pub zero: FlagCalculationStatus,
+    pub carry: FlagCalculationStatus,
+    pub halfcarry: FlagCalculationStatus,
     pub substraction: FlagCalculationStatus,
 }
 
 impl FlagCalculations {
     pub fn new() -> FlagCalculations {
         FlagCalculations {
-            zero:         FlagCalculationStatus::Ignore,
-            carry:        FlagCalculationStatus::Ignore,
-            halfcarry:    FlagCalculationStatus::Ignore,
+            zero: FlagCalculationStatus::Ignore,
+            carry: FlagCalculationStatus::Ignore,
+            halfcarry: FlagCalculationStatus::Ignore,
             substraction: FlagCalculationStatus::Ignore,
         }
     }
@@ -726,7 +750,9 @@ pub(crate) struct FlagCalculationsBuilder {
 
 impl FlagCalculationsBuilder {
     pub fn new() -> FlagCalculationsBuilder {
-        FlagCalculationsBuilder { flag_calculations: FlagCalculations::new() }
+        FlagCalculationsBuilder {
+            flag_calculations: FlagCalculations::new(),
+        }
     }
 
     pub fn build(self) -> FlagCalculations {

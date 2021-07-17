@@ -1,18 +1,10 @@
-use super::screen::{
-    ScreenFetcher,
-    Screen,
-};
+use super::screen::{Screen, ScreenFetcher};
 use crate::{
-    mem::memory::{
-        MapsMemory,
-        Memory,
-    },
+    mem::memory::{MapsMemory, Memory},
     processor::interrupt_controller::InterruptController,
 };
-use std::{
-    cell::RefCell,
-    rc::Rc,
-};
+use std::cmp::Ordering;
+use std::{cell::RefCell, rc::Rc};
 
 // LCD Control Register
 const LCDC_REGISTER: u16 = 0xFF40;
@@ -35,24 +27,24 @@ pub const TICKS_PER_CYCLE: usize = LINES_PER_CYCLE * TICKS_PER_LINE;
 const TILES_IN_LINES: u16 = 0x14;
 
 enum PPUMode {
-    HBLANK    = 0,
-    VBLANK    = 1,
-    OAMSEARCH = 2,
-    TRANSFER  = 3,
+    HBlank = 0,
+    VBlank = 1,
+    OamSearch = 2,
+    Transfer = 3,
 }
 
 pub(crate) struct PixelProcessingUnit {
     memory: Memory,
-    oam:    Memory,
+    oam: Memory,
 
     lcd: Screen,
     pixel_fifo: PixelFifo,
-    fetcher:    Fetcher,
+    fetcher: Fetcher,
 
-    current_tick:  usize,
+    current_tick: usize,
     current_pixel: u8,
-    current_line:  u8,
-    mode:          PPUMode,
+    current_line: u8,
+    mode: PPUMode,
 }
 
 impl PixelProcessingUnit {
@@ -74,17 +66,17 @@ impl PixelProcessingUnit {
             fetcher,
             current_tick,
             current_pixel,
-            mode: PPUMode::OAMSEARCH,
+            mode: PPUMode::OamSearch,
             current_line,
         }
     }
 
     pub fn step(&mut self, io_registers: &mut Memory, _interrupt: &mut InterruptController) {
         match self.mode {
-            PPUMode::HBLANK => self.h_blank(io_registers),
-            PPUMode::VBLANK => self.v_blank(io_registers),
-            PPUMode::OAMSEARCH => self.oam_search(io_registers),
-            PPUMode::TRANSFER => self.pixel_transfer(io_registers),
+            PPUMode::HBlank => self.h_blank(io_registers),
+            PPUMode::VBlank => self.v_blank(io_registers),
+            PPUMode::OamSearch => self.oam_search(io_registers),
+            PPUMode::Transfer => self.pixel_transfer(io_registers),
         }
 
         if self.current_tick <= TICKS_PER_CYCLE {
@@ -99,7 +91,7 @@ impl PixelProcessingUnit {
     pub fn v_blank(&mut self, io_registers: &mut Memory) {
         if (self.current_tick + 1) % TICKS_PER_LINE == 0 {
             if (self.current_tick + 1) % TICKS_PER_CYCLE == 0 {
-                self.mode = PPUMode::OAMSEARCH;
+                self.mode = PPUMode::OamSearch;
                 self.current_line = 0;
             } else {
                 self.current_line += 1;
@@ -113,11 +105,11 @@ impl PixelProcessingUnit {
     pub fn h_blank(&mut self, io_registers: &mut Memory) {
         if (self.current_tick + 1) % TICKS_PER_LINE == 0 {
             if self.current_line as usize == LINES_TO_DRAW {
-                self.mode = PPUMode::VBLANK;
+                self.mode = PPUMode::VBlank;
                 self.current_line = 0;
                 self.lcd.display();
             } else {
-                self.mode = PPUMode::OAMSEARCH;
+                self.mode = PPUMode::OamSearch;
                 self.current_line += 1;
             }
 
@@ -128,30 +120,37 @@ impl PixelProcessingUnit {
 
     pub fn oam_search(&mut self, _io_registers: &mut Memory) {
         if (((self.current_tick + 1) % TICKS_PER_LINE) % OAM_SEARCH_TICKS) == 0 {
-            self.mode = PPUMode::TRANSFER;
+            self.mode = PPUMode::Transfer;
         }
         // Todo!
         // println!("oam search @ tick: {}", self.current_tick);
     }
 
     pub fn pixel_transfer(&mut self, io_registers: &mut Memory) {
-        if (self.current_line as usize) < LINES_TO_DRAW {
-            if self.current_pixel < 160 {
-                if self.current_tick % 2 == 1 {
-                    self.fetcher.fetch_tile(&mut self.pixel_fifo, &self.memory, io_registers);
+        match (self.current_line as usize).cmp(&LINES_TO_DRAW) {
+            Ordering::Less => {
+                if self.current_pixel < 160 {
+                    if self.current_tick % 2 == 1 {
+                        self.fetcher
+                            .fetch_tile(&mut self.pixel_fifo, &self.memory, io_registers);
+                    }
+                    self.pixel_fifo.write_pixel(
+                        &mut self.lcd,
+                        &mut self.current_pixel,
+                        self.current_line,
+                    );
+                } else if self.current_pixel >= 160 {
+                    self.mode = PPUMode::HBlank;
+                    self.current_pixel = 0;
                 }
-                self.pixel_fifo.write_pixel(
-                    &mut self.lcd,
-                    &mut self.current_pixel,
-                    self.current_line,
-                );
-            } else if self.current_pixel >= 160 {
-                self.mode = PPUMode::HBLANK;
-                self.current_pixel = 0;
             }
-        } else if self.current_line as usize == LINES_TO_DRAW {
-            self.mode = PPUMode::VBLANK;
-            self.lcd.display();
+            Ordering::Equal => {
+                self.mode = PPUMode::VBlank;
+                self.lcd.display();
+            }
+            Ordering::Greater => {
+                panic!()
+            }
         }
     }
 }
@@ -186,12 +185,15 @@ impl MapsMemory for PixelProcessingUnit {
 
 struct PixelFifo {
     current_size: usize,
-    color_queue:  u32,
+    color_queue: u32,
 }
 
 impl PixelFifo {
     pub fn new() -> PixelFifo {
-        PixelFifo { current_size: 0, color_queue: 0 }
+        PixelFifo {
+            current_size: 0,
+            color_queue: 0,
+        }
     }
 
     pub fn write_pixel(&mut self, lcd: &mut Screen, pixel_in_line: &mut u8, line: u8) {
@@ -279,7 +281,11 @@ impl Fetcher {
 
     fn read_tile(&mut self, vram: &Memory, io_registers: &mut Memory) {
         let lcd_control_register = io_registers.read(LCDC_REGISTER).unwrap();
-        let bg_map_address = if (lcd_control_register >> 3) & 1 == 0 { 0x9800 } else { 0x9C00 };
+        let bg_map_address = if (lcd_control_register >> 3) & 1 == 0 {
+            0x9800
+        } else {
+            0x9C00
+        };
         let _scx = u16::from(io_registers.read(SCX_REGISTER).unwrap());
         let scy = io_registers.read(SCY_REGISTER).unwrap();
         let tile_map_address = bg_map_address
@@ -293,7 +299,11 @@ impl Fetcher {
 
     fn read_data0(&mut self, vram: &Memory, io_registers: &mut Memory) {
         let lcd_control_register = io_registers.read(LCDC_REGISTER).unwrap();
-        let bg_tiles_address = if (lcd_control_register >> 4) & 1 == 0 { 0x9000 } else { 0x8000 };
+        let bg_tiles_address = if (lcd_control_register >> 4) & 1 == 0 {
+            0x9000
+        } else {
+            0x8000
+        };
         if bg_tiles_address == 0x8000 {
             self.data0 = vram
                 .read(
@@ -325,8 +335,11 @@ impl Fetcher {
 
     fn read_data1(&mut self, pixel_fifo: &mut PixelFifo, vram: &Memory, io_registers: &mut Memory) {
         let lcd_control_register = io_registers.read(LCDC_REGISTER).unwrap();
-        let bg_tiles_address =
-            if (lcd_control_register >> 4) & 1 == 0 { 0x9000 } else { 0x8000 } + 1;
+        let bg_tiles_address = if (lcd_control_register >> 4) & 1 == 0 {
+            0x9000
+        } else {
+            0x8000
+        } + 1;
         if bg_tiles_address == 0x8001 {
             self.data1 = vram
                 .read(
