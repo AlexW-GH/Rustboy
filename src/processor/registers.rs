@@ -2,7 +2,7 @@ use crate::util::bit_op;
 use std::fmt;
 
 #[derive(Clone)]
-pub struct Registers {
+pub(crate) struct Registers {
     af: AF,
     bc: BC,
     de: DE,
@@ -720,7 +720,7 @@ impl FlagCalculations {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct FlagCalculationsBuilder {
+pub(crate) struct FlagCalculationsBuilder {
     flag_calculations: FlagCalculations,
 }
 

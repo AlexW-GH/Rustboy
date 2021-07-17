@@ -34,11 +34,10 @@ use crate::util::{
     /*Dx*/ret_c,   pop_qq,  jp_cc_nn, unsupp,  call_c_nn,push_qq, sub_a_n,   rst_t,   ret_c,    reti,     jp_cc_nn, unsupp,  call_c_nn,unsupp,  sbc_a_n,   rst_t,  /*Dx*/
     /*Ex*/ld_mn_a, pop_qq,  ld_mc_a,  unsupp,  unsupp,   push_qq, and_n,     rst_t,   add_sp_e, jp_mhl,   ld_mnn_a, unsupp,  unsupp,   unsupp,  xor_n,     rst_t,  /*Ex*/
     /*Fx*/ld_a_mn, pop_qq,  ld_a_mc,  di,      unsupp,   push_qq, or_n,      rst_t,   ldhl_sp_e,ld_sp_hl, ld_a_mnn, ei,      unsupp,   unsupp,  cp_n,      rst_t   /*Fx*/
-]; // x0       x1       x2        x3       x4       x5        x6         x7
-   // x8        x9        xA        xB       xC        xD       xE         xF
+];  /*    x0       x1       x2        x3       x4        x5       x6         x7       x8        x9        xA        xB       xC        xD       xE         xF          */
 #[rustfmt::skip] const OPCODE_EXT_TABLE: [fn(u8, u16, &mut CPU) -> u8; 0x100] = [
     /*    x0       x1       x2        x3       x4        x5       x6         x7       x8        x9        xA        xB       xC        xD       xE         xF          */
-    /*0x*/rlc_r,    rlc_r,  rlc_r,    rlc_r,   rlc_r,    rlc_r,   rlc_mhl,   rlc_r,   rrc_r,    rrc_r,    rrc_r,    rrc_r,   rrc_r,    rrc_r,   rrc_mhl,   rrc_r,  /*0x*/
+    /*0x*/rlc_r,   rlc_r,   rlc_r,    rlc_r,   rlc_r,    rlc_r,   rlc_mhl,   rlc_r,   rrc_r,    rrc_r,    rrc_r,    rrc_r,   rrc_r,    rrc_r,   rrc_mhl,   rrc_r,  /*0x*/
     /*1x*/rl_r,    rl_r,    rl_r,     rl_r,    rl_r,     rl_r,    rl_mhl,    rl_r,    rr_r,     rr_r,     rr_r,     rr_r,    rr_r,     rr_r,    rr_mhl,    rr_r,   /*1x*/
     /*2x*/sla_r,   sla_r,   sla_r,    sla_r,   sla_r,    sla_r,   sla_mhl,   sla_r,   sra_r,    sra_r,    sra_r,    sra_r,   sra_r,    sra_r,   sra_mhl,   sra_r,  /*2x*/
     /*3x*/swap_r,  swap_r,  swap_r,   swap_r,  swap_r,   swap_r,  swap_mhl,  swap_r,  srl_r,    srl_r,    srl_r,    srl_r,   srl_r,    srl_r,   srl_mhl,   srl_r,  /*3x*/
@@ -54,11 +53,10 @@ use crate::util::{
     /*Dx*/set_b_r, set_b_r, set_b_r,  set_b_r, set_b_r,  push_qq, set_b_mhl, set_b_r, set_b_r,  set_b_r,  set_b_r,  set_b_r, set_b_r,  set_b_r, set_b_mhl, set_b_r,/*Dx*/
     /*Ex*/set_b_r, set_b_r, set_b_r,  set_b_r, set_b_r,  push_qq, set_b_mhl, set_b_r, set_b_r,  set_b_r,  set_b_r,  set_b_r, set_b_r,  set_b_r, set_b_mhl, set_b_r,/*Ex*/
     /*Fx*/set_b_r, set_b_r, set_b_r,  set_b_r, set_b_r,  push_qq, set_b_mhl, set_b_r, set_b_r,  set_b_r,  set_b_r,  set_b_r, set_b_r,  set_b_r, set_b_mhl, set_b_r /*Fx*/
-]; // x0       x1       x2        x3       x4        x5       x6         x7
-   // x8        x9        xA        xB       xC        xD       xE         xF
+];  /*    x0       x1       x2        x3       x4        x5       x6         x7       x8        x9        xA        xB       xC        xD       xE         xF          */
 
 
-pub fn execute(opcode: u8, pc: u16, cpu: &mut CPU) -> u8 {
+pub(crate) fn execute(opcode: u8, pc: u16, cpu: &mut CPU) -> u8 {
     OPCODE_TABLE[opcode as usize](opcode, pc, cpu)
 }
 

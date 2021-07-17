@@ -1,4 +1,4 @@
-pub mod bit_op {
+pub(crate) mod bit_op {
     pub fn set_bit(number: u8, bit: u8) -> u8 {
         if bit > 7 {
             panic!("invalid bit (>7)");
@@ -31,7 +31,7 @@ pub mod bit_op {
     }
 }
 
-pub mod memory_op {
+pub(crate) mod memory_op {
     use crate::mem::memory::MapsMemory;
 
     pub fn write_memory(memory: &mut dyn MapsMemory, address: u16, value: u8) {

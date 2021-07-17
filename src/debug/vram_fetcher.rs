@@ -8,25 +8,25 @@ use image::{
 };
 use crate::mem::memory::MapsMemory;
 
-pub trait VramDebugger{
+pub(crate) trait VramDebugger{
     fn render_all_background_tiles(&self, fetcher: VRAMFetcher) -> ImageBuffer<Rgba<u8>, Vec<u8>>;
     fn render_background_tilemap(&self, fetcher: VRAMFetcher) -> ImageBuffer<Rgba<u8>, Vec<u8>>;
 }
 
 #[derive(Clone, Copy)]
-pub struct VRAMFetcher{
+pub(crate) struct VRAMFetcher{
 
 }
 
 
 impl VRAMFetcher{
-    pub(crate) fn render_all_background_tiles(&self, memory: &MapsMemory) -> ImageBuffer<Rgba<u8>, Vec<u8>>{
+    pub(crate) fn render_all_background_tiles(&self, _: &dyn MapsMemory) -> ImageBuffer<Rgba<u8>, Vec<u8>>{
         let image = ImageBuffer::from_fn(64, 384, |_, _| Rgba([255u8; 4]));
 
         image
     }
 
-    pub(crate) fn render_background_tilemap(&self, memory: &MapsMemory) -> ImageBuffer<Rgba<u8>, Vec<u8>>{
+    pub(crate) fn render_background_tilemap(&self, memory: &dyn MapsMemory) -> ImageBuffer<Rgba<u8>, Vec<u8>>{
         let mut image = ImageBuffer::from_fn(PIXEL_WIDTH, PIXEL_HEIGHT, |_, _| Rgba([255u8; 4]));
 
         let lcd_control_register = memory.read(LCDC_REGISTER).unwrap();

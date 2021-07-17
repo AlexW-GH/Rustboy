@@ -15,16 +15,16 @@ pub const HOR_PIXELS: u32 = BG_TILES_HOR * BG_TILE_WIDTH;
 pub const VER_PIXELS: u32 = BG_TILES_VER * BG_TILE_HEIGHT;
 pub const PIXELS: u32 = HOR_PIXELS * VER_PIXELS;
 
-pub struct LCD {
-    lcd_fetcher: Rc<RefCell<LCDFetcher>>,
+pub(crate) struct Screen {
+    lcd_fetcher: Rc<RefCell<ScreenFetcher>>,
     image:       ImageBuffer<Rgba<u8>, Vec<u8>>,
     calc_pos:    u32,
 }
 
-impl LCD {
-    pub fn new(lcd_fetcher: Rc<RefCell<LCDFetcher>>) -> LCD {
+impl Screen {
+    pub fn new(lcd_fetcher: Rc<RefCell<ScreenFetcher>>) -> Screen {
         let image = ImageBuffer::from_fn(HOR_PIXELS, VER_PIXELS, |_, _| Rgba([255u8; 4]));
-        LCD { image, lcd_fetcher, calc_pos: 0 }
+        Screen { image, lcd_fetcher, calc_pos: 0 }
     }
 
     pub fn set_pixel(&mut self, x: u32, y: u32, color: u8) {
@@ -49,14 +49,14 @@ impl LCD {
     }
 }
 
-pub struct LCDFetcher {
+pub(crate) struct ScreenFetcher {
     image: ImageBuffer<Rgba<u8>, Vec<u8>>,
 }
 
-impl LCDFetcher {
-    pub fn new() -> LCDFetcher {
+impl ScreenFetcher {
+    pub fn new() -> ScreenFetcher {
         let image = ImageBuffer::from_fn(HOR_PIXELS, VER_PIXELS, |_, _| Rgba([255u8; 4]));
-        LCDFetcher { image }
+        ScreenFetcher { image }
     }
 
     pub fn set_image(&mut self, image: ImageBuffer<Rgba<u8>, Vec<u8>>) {

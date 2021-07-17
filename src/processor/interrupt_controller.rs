@@ -1,4 +1,4 @@
-pub struct InterruptController {
+pub(crate) struct InterruptController {
     pub master_enable:           bool,
     pub interrupt_enable_flags:  u8,
     pub interrupt_request_flags: u8,

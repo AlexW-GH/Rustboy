@@ -1,2 +1,1 @@
-pub(crate) mod gameboy;
-pub(crate) mod renderer;
+pub mod gameboy;

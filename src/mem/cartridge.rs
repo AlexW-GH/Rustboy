@@ -4,8 +4,8 @@ use super::memory::{
 };
 
 
-#[derive(Debug)]
-pub struct CartridgeHeader {
+#[derive(Debug, Clone)]
+struct CartridgeHeader {
     title:             String,
     manufacturer:      String,
     licensee_code:     u16,
@@ -63,7 +63,7 @@ impl CartridgeHeader {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum CartridgeType {
+enum CartridgeType {
     MBCNone { ram: bool, battery: bool },
     MBC1 { ram: bool, battery: bool },
     MBC2 { battery: bool },
@@ -93,7 +93,7 @@ impl CartridgeType {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum RomSize {
+enum RomSize {
     KB32,
     KB64,
     KB128,
@@ -123,7 +123,7 @@ impl RomSize {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum RamSize {
+enum RamSize {
     None,
     KB2,
     KB8,
@@ -195,7 +195,7 @@ impl MapsMemory for MBCNone {
     }
 }
 
-pub struct MBC1 {
+struct MBC1 {
     rom:             Vec<Memory>,
     ram:             Vec<Memory>,
     ram_enable:      u8,
@@ -312,6 +312,7 @@ impl MapsMemory for MBC1 {
 
 pub struct Cartridge {
     mbc: Box<dyn MapsMemory + Send>,
+    header: CartridgeHeader,
 }
 
 impl Cartridge {
@@ -321,8 +322,12 @@ impl Cartridge {
             data.push(val);
         }
         let header = CartridgeHeader::new(&data);
-        let mbc = MemoryBankController::create_rom_memory(&ROM { data, header });
-        Cartridge { mbc }
+        let mbc = MemoryBankController::create_rom_memory(&ROM { data, header: header.clone() });
+        Cartridge { mbc, header }
+    }
+
+    pub fn title(&self) -> &str {
+        &self.header.title
     }
 }
 
@@ -340,7 +345,7 @@ impl MapsMemory for Cartridge {
     }
 }
 
-pub struct ROM {
+struct ROM {
     data:   Vec<u8>,
     header: CartridgeHeader,
 }

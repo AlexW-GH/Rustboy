@@ -1,6 +1,6 @@
 use crate::{
     gpu::{
-        lcd::LCDFetcher,
+        screen::ScreenFetcher,
         ppu::PixelProcessingUnit,
     },
     mem::{
@@ -21,7 +21,7 @@ use std::{
     rc::Rc,
 };
 
-pub struct CPU {
+pub(crate) struct CPU {
     pub registers: Registers,
     pub interrupt: InterruptController,
 
@@ -38,7 +38,7 @@ impl CPU {
     pub fn new(
         interrupt: InterruptController,
         cartridge: Cartridge,
-        lcd_fetcher: Rc<RefCell<LCDFetcher>>,
+        lcd_fetcher: Rc<RefCell<ScreenFetcher>>,
         boot_rom: Option<Vec<u8>>,
     ) -> CPU {
         let boot_rom = match boot_rom {
@@ -124,6 +124,10 @@ impl CPU {
             write_memory(self, 0xFFFF, 0x00);
         }
     }
+
+    pub fn game_title(&self) -> &str {
+        self.cartridge.title()
+    }
 }
 
 impl MapsMemory for CPU {
@@ -195,7 +199,7 @@ impl MapsMemory for CPU {
 #[cfg(test)]
 mod tests {
     use crate::{
-        gpu::lcd::LCDFetcher,
+        gpu::screen::ScreenFetcher,
         mem::cartridge::Cartridge,
         processor::{
             cpu::CPU,
@@ -226,7 +230,7 @@ mod tests {
         let interrupt = InterruptController::new();
         let rom = add_header(rom);
         let cartridge = Cartridge::new(rom);
-        let lcd_fetcher = Rc::new(RefCell::new(LCDFetcher::new()));
+        let lcd_fetcher = Rc::new(RefCell::new(ScreenFetcher::new()));
         let mut cpu = CPU::new(interrupt, cartridge, lcd_fetcher, None);
         cpu.registers.set_pc(0);
         cpu.registers.set_f(0x0);

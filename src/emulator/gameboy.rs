@@ -1,5 +1,5 @@
 use crate::{
-    gpu::lcd::LCDFetcher,
+    gpu::screen::ScreenFetcher,
     mem::cartridge::Cartridge,
     processor::{
         cpu::CPU,
@@ -17,39 +17,71 @@ use image::{
     Rgba,
 };
 
+pub trait Emulator{
+    fn step(&mut self, steps: usize);
+    fn render_step(&mut self);
+    fn load_cartridge(&mut self, cartridge: Cartridge);
+}
+
 pub struct Gameboy {
-    cpu: CPU,
+    cpu: Option<CPU>,
+    lcd_fetcher: Rc<RefCell<ScreenFetcher>>,
+    boot_rom: Option<Vec<u8>>,
 }
 
 impl Gameboy {
-    pub fn new(
-        lcd_fetcher: Rc<RefCell<LCDFetcher>>,
-        cartridge: Cartridge,
-        boot_rom: Option<Vec<u8>>,
-    ) -> Gameboy {
-        let interrupt = InterruptController::new();
-        let cpu = CPU::new(interrupt, cartridge, lcd_fetcher, boot_rom);
-        Gameboy { cpu }
+    pub fn new(boot_rom: Option<Vec<u8>>) -> Self {
+        let lcd_fetcher = Rc::new(RefCell::new(ScreenFetcher::new()));
+        Gameboy { cpu: None, lcd_fetcher, boot_rom }
     }
 
-    pub fn step(&mut self, steps: usize) {
-        for _ in 0..steps {
-            self.cpu.step();
+    pub fn game_title(&self) -> &str {
+        if let Some(cpu) = &self.cpu {
+            cpu.game_title()
+        }  else {
+            ""
         }
     }
 
-    pub fn render_step(&mut self) {
+    pub fn screen(&self) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
+        RefCell::borrow(&self.lcd_fetcher).image().clone()
+    }
+}
+
+impl Emulator for Gameboy {
+    fn step(&mut self, steps: usize) {
+        if let Some(cpu) = &mut self.cpu {
+            for _ in 0..steps {
+                cpu.step();
+            }
+        }
+
+    }
+
+    fn render_step(&mut self) {
         use crate::gpu::ppu::TICKS_PER_CYCLE;
         self.step(TICKS_PER_CYCLE)
     }
+
+    fn load_cartridge(&mut self, cartridge: Cartridge){
+        let interrupt = InterruptController::new();
+        self.cpu = Some(CPU::new(interrupt, cartridge, self.lcd_fetcher.clone(), self.boot_rom.clone()));
+    }
+
 }
 
 impl VramDebugger for Gameboy{
     fn render_all_background_tiles(&self, fetcher: VRAMFetcher) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
-        fetcher.render_all_background_tiles(&self.cpu)
+        if let Some(cpu) = &self.cpu {
+            return fetcher.render_all_background_tiles(cpu);
+        }
+        ImageBuffer::new(0,0)
     }
 
     fn render_background_tilemap(&self, fetcher: VRAMFetcher) -> ImageBuffer<Rgba<u8>, Vec<u8>> {
-        fetcher.render_background_tilemap(&self.cpu)
+        if let Some(cpu) = &self.cpu {
+            return fetcher.render_background_tilemap(cpu);
+        }
+        ImageBuffer::new(0,0)
     }
 }

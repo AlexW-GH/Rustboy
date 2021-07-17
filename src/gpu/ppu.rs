@@ -1,6 +1,6 @@
-use super::lcd::{
-    LCDFetcher,
-    LCD,
+use super::screen::{
+    ScreenFetcher,
+    Screen,
 };
 use crate::{
     mem::memory::{
@@ -34,18 +34,18 @@ pub const TICKS_PER_CYCLE: usize = LINES_PER_CYCLE * TICKS_PER_LINE;
 
 const TILES_IN_LINES: u16 = 0x14;
 
-pub enum PPUMode {
+enum PPUMode {
     HBLANK    = 0,
     VBLANK    = 1,
     OAMSEARCH = 2,
     TRANSFER  = 3,
 }
 
-pub struct PixelProcessingUnit {
+pub(crate) struct PixelProcessingUnit {
     memory: Memory,
     oam:    Memory,
 
-    lcd:        LCD,
+    lcd: Screen,
     pixel_fifo: PixelFifo,
     fetcher:    Fetcher,
 
@@ -56,11 +56,11 @@ pub struct PixelProcessingUnit {
 }
 
 impl PixelProcessingUnit {
-    pub fn new(lcd_fetcher: Rc<RefCell<LCDFetcher>>) -> PixelProcessingUnit {
+    pub fn new(lcd_fetcher: Rc<RefCell<ScreenFetcher>>) -> PixelProcessingUnit {
         let memory = Memory::new_read_write(&[0u8; 0], 0x8000, 0x9FFF);
         let oam = Memory::new_read_write(&[0u8; 0], 0xFE00, 0xFE9F);
 
-        let lcd = LCD::new(lcd_fetcher);
+        let lcd = Screen::new(lcd_fetcher);
         let pixel_fifo = PixelFifo::new();
         let fetcher = Fetcher::new();
         let current_tick = 0;
@@ -194,7 +194,7 @@ impl PixelFifo {
         PixelFifo { current_size: 0, color_queue: 0 }
     }
 
-    pub fn write_pixel(&mut self, lcd: &mut LCD, pixel_in_line: &mut u8, line: u8) {
+    pub fn write_pixel(&mut self, lcd: &mut Screen, pixel_in_line: &mut u8, line: u8) {
         if self.current_size >= 8 {
             let color = self.pop();
             lcd.set_pixel(u32::from(*pixel_in_line), u32::from(line), color);
